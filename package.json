@@ -1,0 +1,53 @@
+{
+  "name": "ecoearn",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "download-model": "node scripts/download-yolo-model.js"
+  },
+  "dependencies": {
+    "@heroicons/react": "2.0.18",
+    "@radix-ui/react-progress": "^1.1.6",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.48.1",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.22.0",
+    "@types/bcryptjs": "^2.4.6",
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "buffer": "^6.0.3",
+    "canvas": "^3.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.0.11",
+    "leaflet": "1.9.4",
+    "mongodb": "6.3.0",
+    "mongoose": "8.0.3",
+    "next": "14.0.4",
+    "next-auth": "^4.24.11",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-leaflet": "4.2.1",
+    "recharts": "^2.15.1",
+    "socket.io-client": "4.7.2",
+    "tailwind-merge": "^3.2.0",
+    "zustand": "4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "20.10.5",
+    "@types/react": "18.2.45",
+    "@types/react-dom": "18.2.18",
+    "autoprefixer": "10.4.16",
+    "eslint": "8.56.0",
+    "eslint-config-next": "14.0.4",
+    "postcss": "8.4.32",
+    "tailwindcss": "3.3.0",
+    "typescript": "5.3.3"
+  }
+}
