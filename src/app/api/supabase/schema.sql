@@ -98,9 +98,84 @@ CREATE POLICY "Anyone can view waste images"
 CREATE POLICY "Authenticated users can upload waste images"
     ON storage.objects FOR INSERT
     WITH CHECK (
-        bucket_id = 'waste-images' 
+        bucket_id = 'waste-images'
         AND auth.role() = 'authenticated'
     );
+
+-- Create enhanced AI detection table
+CREATE TABLE ai_detections (
+    id SERIAL PRIMARY KEY,
+    user_email TEXT NOT NULL,
+    image_name TEXT NOT NULL,
+    image_size INTEGER NOT NULL,
+    waste_type TEXT NOT NULL,
+    confidence FLOAT NOT NULL,
+    quality TEXT NOT NULL,
+    recyclability FLOAT NOT NULL,
+    contamination FLOAT NOT NULL,
+    points_earned INTEGER NOT NULL,
+    model_results JSONB,
+    accuracy_improvement FLOAT,
+    description TEXT,
+    location JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create blockchain rewards table
+CREATE TABLE reward_transactions (
+    id SERIAL PRIMARY KEY,
+    user_email TEXT NOT NULL,
+    transaction_id TEXT UNIQUE NOT NULL,
+    reward_type TEXT NOT NULL,
+    specific_type TEXT,
+    points_spent INTEGER NOT NULL,
+    reward_data JSONB NOT NULL,
+    blockchain_tx_hash TEXT,
+    status TEXT DEFAULT 'completed',
+    redemption_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+    CONSTRAINT valid_reward_type CHECK (reward_type IN ('crypto', 'nft', 'voucher')),
+    CONSTRAINT valid_status CHECK (status IN ('pending', 'completed', 'failed', 'redeemed'))
+);
+
+-- Create route optimization table
+CREATE TABLE optimized_routes (
+    id SERIAL PRIMARY KEY,
+    route_id TEXT UNIQUE NOT NULL,
+    collector_id TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    start_location JSONB NOT NULL,
+    pickup_locations JSONB NOT NULL,
+    optimized_waypoints JSONB NOT NULL,
+    vehicle_type TEXT NOT NULL,
+    total_distance FLOAT NOT NULL,
+    total_duration FLOAT NOT NULL,
+    total_fuel_cost FLOAT NOT NULL,
+    total_emissions FLOAT NOT NULL,
+    estimated_savings JSONB NOT NULL,
+    efficiency_score FLOAT NOT NULL,
+    status TEXT DEFAULT 'active',
+    feedback TEXT,
+    actual_metrics JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+    CONSTRAINT valid_vehicle_type CHECK (vehicle_type IN ('truck', 'van', 'bike')),
+    CONSTRAINT valid_route_status CHECK (status IN ('active', 'completed', 'cancelled'))
+);
+
+-- Create indexes for performance
+CREATE INDEX idx_ai_detections_user_email ON ai_detections(user_email);
+CREATE INDEX idx_ai_detections_created_at ON ai_detections(created_at);
+CREATE INDEX idx_ai_detections_waste_type ON ai_detections(waste_type);
+
+CREATE INDEX idx_reward_transactions_user_email ON reward_transactions(user_email);
+CREATE INDEX idx_reward_transactions_created_at ON reward_transactions(created_at);
+CREATE INDEX idx_reward_transactions_reward_type ON reward_transactions(reward_type);
+
+CREATE INDEX idx_optimized_routes_user_email ON optimized_routes(user_email);
+CREATE INDEX idx_optimized_routes_collector_id ON optimized_routes(collector_id);
+CREATE INDEX idx_optimized_routes_created_at ON optimized_routes(created_at);
 
 -- Create function to update collector location
 CREATE OR REPLACE FUNCTION update_collector_location(

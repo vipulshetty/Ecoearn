@@ -4,7 +4,7 @@
  */
 
 /**
- * Analyze an image to detect waste types based on color patterns
+ * Analyze an image to detect waste types based on color patterns and visual features
  * @param imageUrl URL of the image to analyze
  * @returns Promise with detected waste analysis
  */
@@ -98,47 +98,58 @@ export async function analyzeImageColors(imageUrl: string): Promise<any> {
           
           console.log('Dominant color detected:', dominantColor);
           
-          // Map dominant color to waste type
+          // Enhanced waste type detection with better logic
           let detectedClass = '';
           let detectedWasteType = '';
-          let confidence = 0.7 + Math.random() * 0.2; // Simulate confidence between 0.7-0.9
-          
-          switch(dominantColor) {
-            case 'brown':
-              detectedClass = 'cardboard';
-              detectedWasteType = 'paper';
-              break;
-            case 'white':
-              detectedClass = 'paper';
-              detectedWasteType = 'paper';
-              break;
-            case 'green':
-              // Higher chance of being glass
-              detectedClass = Math.random() > 0.5 ? 'glass_bottle' : 'leaf';
-              detectedWasteType = Math.random() > 0.5 ? 'glass' : 'organic';
-              break;
-            case 'blue':
-              detectedClass = 'plastic_bottle';
-              detectedWasteType = 'plastic';
-              break;
-            case 'black':
-              detectedClass = 'electronic_device';
-              detectedWasteType = 'electronics';
-              break;
-            case 'yellow':
-            case 'orange':
-            case 'red':
-              detectedClass = 'plastic_container';
-              detectedWasteType = 'plastic';
-              break;
-            case 'gray':
-              detectedClass = 'metal_can';
-              detectedWasteType = 'metal';
-              break;
-            default:
-              detectedClass = 'plastic_bottle';
-              detectedWasteType = 'plastic';
+          let confidence = 0.75; // Base confidence
+
+          // Calculate color percentages for better analysis
+          const colorPercentages: Record<string, number> = {};
+          for (const [color, count] of Object.entries(colorCounts)) {
+            colorPercentages[color] = totalPixels > 0 ? count / totalPixels : 0;
           }
+
+          // More sophisticated detection logic
+          if (colorPercentages.brown > 0.3 || colorPercentages.white > 0.4) {
+            detectedClass = colorPercentages.brown > colorPercentages.white ? 'cardboard_box' : 'paper_sheet';
+            detectedWasteType = 'paper';
+            confidence = 0.8 + (Math.max(colorPercentages.brown, colorPercentages.white) * 0.15);
+          } else if (colorPercentages.green > 0.25) {
+            // Green could be glass bottle or organic waste
+            if (colorPercentages.clear > 0.1 || colorPercentages.white > 0.2) {
+              detectedClass = 'glass_bottle';
+              detectedWasteType = 'glass';
+              confidence = 0.75 + (colorPercentages.green * 0.2);
+            } else {
+              detectedClass = 'organic_waste';
+              detectedWasteType = 'organic';
+              confidence = 0.7 + (colorPercentages.green * 0.15);
+            }
+          } else if (colorPercentages.blue > 0.2 || colorPercentages.clear > 0.3) {
+            detectedClass = 'plastic_bottle';
+            detectedWasteType = 'plastic';
+            confidence = 0.8 + (Math.max(colorPercentages.blue, colorPercentages.clear) * 0.15);
+          } else if (colorPercentages.gray > 0.3 || (colorPercentages.black > 0.2 && colorPercentages.gray > 0.1)) {
+            detectedClass = 'metal_can';
+            detectedWasteType = 'metal';
+            confidence = 0.85 + (colorPercentages.gray * 0.1);
+          } else if (colorPercentages.black > 0.4) {
+            detectedClass = 'electronic_device';
+            detectedWasteType = 'electronics';
+            confidence = 0.75 + (colorPercentages.black * 0.15);
+          } else if (colorPercentages.red > 0.2 || colorPercentages.yellow > 0.2 || colorPercentages.orange > 0.2) {
+            detectedClass = 'plastic_container';
+            detectedWasteType = 'plastic';
+            confidence = 0.8 + (Math.max(colorPercentages.red, colorPercentages.yellow, colorPercentages.orange) * 0.15);
+          } else {
+            // Default to plastic bottle as it's most common
+            detectedClass = 'plastic_bottle';
+            detectedWasteType = 'plastic';
+            confidence = 0.7;
+          }
+
+          // Cap confidence at 0.95
+          confidence = Math.min(confidence, 0.95);
           
           // Return detection result
           resolve({

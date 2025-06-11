@@ -21,6 +21,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <Navbar />
+          {/* Remove global pt-20 to allow home page to have full-screen hero */}
           <main className="min-h-screen bg-gray-50">
             {children}
           </main>
