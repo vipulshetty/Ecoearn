@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         // Convert locations to the format expected by TraderAssignmentService
         const traderLocations = locations.map(loc => ({
           type: 'Point',
-          coordinates: [loc.lng, loc.lat] // Note: MongoDB uses [lng, lat] format
+          coordinates: [loc.lng, loc.lat] as [number, number] // Note: MongoDB uses [lng, lat] format
         }));
 
         const result = await TraderAssignmentService.assignTraderWithRouteOptimization(
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     // Simple assignment without route optimization
     const firstLocation = {
       type: 'Point',
-      coordinates: [locations[0].lng, locations[0].lat]
+      coordinates: [locations[0].lng, locations[0].lat] as [number, number]
     };
 
     const nearestTrader = await TraderAssignmentService.findNearestTrader(firstLocation);
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
 
     const location = {
       type: 'Point',
-      coordinates: [lng, lat]
+      coordinates: [lng, lat] as [number, number]
     };
 
     const prediction = await TraderAssignmentService.getOptimalCollectionTime(location);

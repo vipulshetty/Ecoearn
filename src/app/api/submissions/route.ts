@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import WasteSubmission from '@/models/WasteSubmission';
+import { supabase } from '@/lib/supabase';
+// TODO: Convert to Supabase - MongoDB models not available
+// import dbConnect from '@/lib/mongodb';
+// import WasteSubmission from '@/models/WasteSubmission';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    
+    // TODO: Implement with Supabase
+    // await dbConnect();
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -17,12 +20,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const submissions = await WasteSubmission.find({ userId })
-      .sort({ createdAt: -1 })
+    // Use Supabase instead of MongoDB
+    const { data: submissions, error } = await supabase
+      .from('waste_submissions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
       .limit(10);
 
-    return NextResponse.json(submissions);
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch submissions' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(submissions || []);
   } catch (error) {
+    console.error('Error fetching submissions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch submissions' },
       { status: 500 }

@@ -17,6 +17,33 @@ export interface WasteDetectionResult {
   }>;
 }
 
+interface ColorAnalysis {
+  dominantColors: string[];
+  colorDistribution: Record<string, number>;
+  brightness: number;
+  saturation: number;
+  hue: number;
+}
+
+interface ShapeAnalysis {
+  edges: number;
+  corners: number;
+  roundness: number;
+  aspectRatio: number;
+  circularity: number;
+  rectangularity: number;
+  edgeDensity: number;
+  contourCount: number;
+}
+
+interface TextureAnalysis {
+  smoothness: number;
+  roughness: number;
+  patterns: number;
+  uniformity: number;
+  entropy: number;
+}
+
 /**
  * Analyze image using improved color analysis and smart fallbacks
  */
@@ -29,7 +56,7 @@ export async function analyzeWasteImage(imageFile: File): Promise<WasteDetection
 
     // Run improved color analysis + filename hints
     const [colorResult, filenameResult] = await Promise.all([
-      analyzeImageColorsImproved(imageUrl),
+      analyzeImageColorsAdvanced(imageUrl),
       analyzeFilename(imageFile.name)
     ]);
 
@@ -679,6 +706,9 @@ function extractShapeFeatures(imageData: ImageData): ShapeAnalysis {
   const rectangularity = estimateRectangularity(edges, width, height);
 
   return {
+    edges: edgePixels,
+    corners: Math.floor(edgePixels / 20), // Simplified corner estimation
+    roundness: circularity,
     aspectRatio,
     circularity,
     rectangularity,
@@ -731,6 +761,7 @@ function extractTextureFeatures(imageData: ImageData): TextureAnalysis {
   return {
     smoothness,
     roughness: 1 - smoothness,
+    patterns: entropy / 8, // Simplified pattern detection based on entropy
     uniformity,
     entropy
   };
@@ -1160,3 +1191,33 @@ function getFallbackResult(filename: string): WasteDetectionResult {
     }]
   };
 }
+
+/**
+ * Combine results from different analysis methods
+ */
+function combineResults(
+  colorResult: Partial<WasteDetectionResult>,
+  filenameResult: Partial<WasteDetectionResult>,
+  imageFile: File
+): WasteDetectionResult {
+  // Use color result as primary, filename as fallback
+  const wasteType = colorResult.wasteType || filenameResult.wasteType || 'plastic';
+  const confidence = Math.max(colorResult.confidence || 0, filenameResult.confidence || 0);
+  const label = colorResult.label || filenameResult.label || 'unknown item';
+
+  return {
+    wasteType: wasteType.charAt(0).toUpperCase() + wasteType.slice(1),
+    confidence,
+    label,
+    detailedType: `${wasteType.charAt(0).toUpperCase() + wasteType.slice(1)} (${label})`,
+    quality: confidence > 0.8 ? 'excellent' : confidence > 0.6 ? 'good' : 'fair',
+    allDetections: [{
+      class: label.replace(/\s+/g, '_'),
+      wasteType,
+      score: confidence,
+      bbox: [0.1, 0.1, 0.8, 0.8]
+    }]
+  };
+}
+
+

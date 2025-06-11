@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import dbConnect from '@/lib/mongodb';
-import WasteSubmission from '@/models/WasteSubmission';
+// Note: Client components should not import server-side MongoDB modules
+// import dbConnect from '@/lib/mongodb';
+// import WasteSubmission from '@/models/WasteSubmission';
 
 // Import TrackingMap dynamically to avoid SSR issues with Leaflet
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), {

@@ -126,17 +126,26 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if saving fails
     }
 
-    // Update user points
-    const { error: pointsError } = await supabase
+    // Update user points - first get current points, then update
+    const { data: userData, error: fetchError } = await supabase
       .from('users')
-      .update({ 
-        points: supabase.raw(`points + ${pointsEarned}`)
-      })
-      .eq('email', session.user.email);
+      .select('points')
+      .eq('email', session.user.email)
+      .single();
 
-    if (pointsError) {
-      console.error('Error updating user points:', pointsError);
+    if (!fetchError && userData) {
+      const newPoints = (userData.points || 0) + pointsEarned;
+      const { error: pointsError } = await supabase
+        .from('users')
+        .update({ points: newPoints })
+        .eq('email', session.user.email);
+
+      if (pointsError) {
+        console.error('Error updating user points:', pointsError);
+      }
     }
+
+
 
     console.log(`✅ AI Detection complete: ${detectionResult.finalPrediction.wasteType} (${(detectionResult.finalPrediction.confidence * 100).toFixed(1)}% confidence)`);
 

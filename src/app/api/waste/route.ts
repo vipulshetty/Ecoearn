@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import Waste from '@/models/Waste';
-import User from '@/models/User';
+import { supabase } from '@/lib/supabase';
+// TODO: Convert to Supabase - MongoDB models not available
+// import dbConnect from '@/lib/mongodb';
+// import Waste from '@/models/Waste';
+// import User from '@/models/User';
 
 // Points calculation based on waste type and weight
 const calculatePoints = (type: string, subType: string, weight: number): number => {
@@ -51,12 +53,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
-
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    // TODO: Implement with Supabase
+    // await dbConnect();
+    // const user = await User.findOne({ email: session.user.email });
+    // if (!user) {
+    //   return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // }
 
     const formData = await req.formData();
     
@@ -122,9 +124,14 @@ export async function POST(req: NextRequest) {
     // Simulate AI analysis
     const aiAnalysis = simulateAIAnalysis(type as string, subType as string);
 
+    // TODO: Implement with Supabase
     // Create waste submission
-    const waste = await Waste.create({
-      userId: user._id,
+    const verificationCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+
+    // Temporary implementation for deployment
+    const waste = {
+      id: Date.now().toString(),
+      userId: session.user.email,
       type,
       subType,
       weight,
@@ -133,29 +140,18 @@ export async function POST(req: NextRequest) {
       images: imageUrls,
       points,
       aiAnalysis,
-      verificationCode: Math.random().toString(36).substr(2, 6).toUpperCase(),
+      verificationCode,
       wasteQuality: 'pending',
-      status: 'pending'
-    });
+      status: 'pending',
+      createdAt: new Date()
+    };
 
-    // Update user's total points and submissions
-    await User.findByIdAndUpdate(user._id, {
-      $inc: { totalPoints: points },
-      $push: { 
-        submissions: waste._id,
-        'stats.pointsHistory': {
-          points,
-          reason: `Waste submission: ${type} - ${weight}kg`,
-          timestamp: new Date()
-        }
-      },
-      $inc: { 'stats.totalWasteCollected': weight }
-    });
+    console.log('Waste submission (temporary):', waste);
 
     return NextResponse.json({
-      message: 'Waste submitted successfully',
+      message: 'Waste submitted successfully (demo mode)',
       points,
-      verificationCode: waste.verificationCode,
+      verificationCode,
       waste
     });
   } catch (error: any) {
@@ -177,39 +173,56 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
-
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    // TODO: Implement with Supabase
+    // await dbConnect();
+    // const user = await User.findOne({ email: session.user.email });
+    // if (!user) {
+    //   return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // }
 
     const searchParams = req.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
     const type = searchParams.get('type');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
 
-    const query: any = { userId: user._id };
+    // Temporary mock data for deployment
+    const mockSubmissions = [
+      {
+        id: '1',
+        type: 'plastic',
+        subType: 'pet',
+        weight: 2.5,
+        points: 25,
+        status: 'verified',
+        createdAt: new Date(Date.now() - 86400000), // 1 day ago
+        verificationCode: 'ABC123'
+      },
+      {
+        id: '2',
+        type: 'paper',
+        subType: 'cardboard',
+        weight: 1.8,
+        points: 14,
+        status: 'pending',
+        createdAt: new Date(Date.now() - 172800000), // 2 days ago
+        verificationCode: 'DEF456'
+      }
+    ];
 
-    if (status) query.status = status;
-    if (type) query.type = type;
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
+    // Filter by status and type if provided
+    let filteredSubmissions = mockSubmissions;
+    if (status) {
+      filteredSubmissions = filteredSubmissions.filter(s => s.status === status);
+    }
+    if (type) {
+      filteredSubmissions = filteredSubmissions.filter(s => s.type === type);
     }
 
-    const totalSubmissions = await Waste.countDocuments(query);
+    const totalSubmissions = filteredSubmissions.length;
     const totalPages = Math.ceil(totalSubmissions / limit);
-
-    const submissions = await Waste.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
+    const startIndex = (page - 1) * limit;
+    const submissions = filteredSubmissions.slice(startIndex, startIndex + limit);
 
     return NextResponse.json({
       submissions,

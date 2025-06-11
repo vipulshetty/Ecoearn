@@ -139,12 +139,16 @@ export class AIRouteOptimization {
     let cleaned = 0;
 
     // Clean route data cache
-    for (const [key, value] of this.routeDataCache.entries()) {
+    const entriesToDelete: string[] = [];
+    this.routeDataCache.forEach((value, key) => {
       if (now - value.timestamp > this.cacheExpiry) {
-        this.routeDataCache.delete(key);
-        cleaned++;
+        entriesToDelete.push(key);
       }
-    }
+    });
+    entriesToDelete.forEach(key => {
+      this.routeDataCache.delete(key);
+      cleaned++;
+    });
 
     // Clean distance cache if it gets too large (keep most recent 1000 entries)
     if (this.distanceCache.size > 1000) {

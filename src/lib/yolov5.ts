@@ -107,18 +107,7 @@ export class YOLOv5WasteDetector {
         try {
           await tf.setBackend('webgl');
           console.log('Using WebGL backend for YOLOv5 model');
-          // Set WebGL flags for better performance
-          const gl = await tf.backend().getGPGPUContext().gl;
-          if (gl) {
-            // Optimize WebGL context
-            gl.disable(gl.DEPTH_TEST);
-            gl.disable(gl.STENCIL_TEST);
-            gl.disable(gl.BLEND);
-            gl.disable(gl.DITHER);
-            gl.disable(gl.POLYGON_OFFSET_FILL);
-            gl.disable(gl.SAMPLE_COVERAGE);
-            gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);
-          }
+          // WebGL backend is set, no need to access GL context directly
         } catch (e) {
           console.warn('WebGL backend failed, falling back to CPU', e);
           await tf.setBackend('cpu');
@@ -160,7 +149,8 @@ export class YOLOv5WasteDetector {
         }
         
         if (!modelLoaded) {
-          throw new Error(`Failed to load YOLOv5 model from any path: ${lastError?.message || 'Unknown error'}`);
+          const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error';
+          throw new Error(`Failed to load YOLOv5 model from any path: ${errorMessage}`);
         }
         
         // Verify model is loaded
@@ -175,14 +165,18 @@ export class YOLOv5WasteDetector {
         // Warmup the model with a zero input
         console.log('Warming up model with dummy input...');
         const dummyInput = tf.zeros([1, 640, 640, 3]);
-        const warmupResult = await this.model.executeAsync(dummyInput) as tf.Tensor[];
-        
+        const warmupResult = await this.model.executeAsync(dummyInput);
+
         // Dispose of tensors
         dummyInput.dispose();
         if (Array.isArray(warmupResult)) {
-          warmupResult.forEach(tensor => tensor.dispose());
-        } else {
-          warmupResult.dispose();
+          warmupResult.forEach((tensor: any) => {
+            if (tensor && typeof tensor.dispose === 'function') {
+              tensor.dispose();
+            }
+          });
+        } else if (warmupResult && typeof (warmupResult as any).dispose === 'function') {
+          (warmupResult as any).dispose();
         }
         
         onProgress?.(100);
@@ -244,19 +238,20 @@ export class YOLOv5WasteDetector {
         // Handle different output formats
         if (shape.length === 3) {
           // Standard YOLOv5 output format [batch, detections, values]
-          const [_, numDetections, numValues] = shape;
-          detections = prediction.arraySync()[0];
+          const numDetections = shape[1];
+          const numValues = shape[2];
+          detections = (prediction.arraySync() as any[])[0];
           console.log(`Processing ${numDetections} detections with ${numValues} values each`);
         } else if (shape.length === 4) {
           // Some YOLOv5 models output [batch, grid_y, grid_x, values]
           // Need to reshape to standard format
           console.log('Reshaping grid-based output to detection format');
           const reshaped = prediction.reshape([1, -1, shape[3]]);
-          detections = reshaped.arraySync()[0];
+          detections = (reshaped.arraySync() as any[])[0];
         } else {
           // Fallback for unexpected formats
           console.warn('Unexpected YOLOv5 output format, attempting to process anyway');
-          detections = prediction.arraySync()[0];
+          detections = (prediction.arraySync() as any[])[0];
         }
       } catch (error) {
         console.error('Error processing YOLOv5 output:', error);

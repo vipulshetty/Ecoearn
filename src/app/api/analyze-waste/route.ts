@@ -85,10 +85,12 @@ async function analyzeImage(imageData: FormData): Promise<WasteAnalysisResult> {
 
     // Create a simulated ImageData object for the AI service
     // In a real implementation, you'd process this on the client side
+    const clampedArray = new Uint8ClampedArray(uint8Array);
     const mockImageData = {
-      data: uint8Array,
+      data: clampedArray,
       width: 224,
-      height: 224
+      height: 224,
+      colorSpace: 'srgb' as PredefinedColorSpace
     } as ImageData;
 
     // Run the enhanced AI detection
@@ -317,6 +319,9 @@ export async function POST(request: Request) {
       formData.get('image') ? (formData.get('image') as File).name : 'unknown',
       'Size:', formData.get('image') ? (formData.get('image') as File).size : 'unknown');
     
+    // Initialize a new result for this request
+    let result: WasteAnalysisResult;
+
     // Check if client analysis is provided
     const clientAnalysis = formData.get('clientAnalysis');
     if (clientAnalysis) {
@@ -340,9 +345,6 @@ export async function POST(request: Request) {
         console.warn('Failed to parse client analysis:', e);
       }
     }
-    
-    // Initialize a new result for this request
-    let result: WasteAnalysisResult;
     
     // Log the incoming request to help with debugging
     const image = formData.get('image') as File;

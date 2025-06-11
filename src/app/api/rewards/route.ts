@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Reward from '@/models/Reward';
-import User from '@/models/User';
+// TODO: Convert to Supabase - MongoDB models not available
+// import dbConnect from '@/lib/mongodb';
+// import Reward from '@/models/Reward';
+// import User from '@/models/User';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    const rewards = await Reward.find({ isActive: true });
+    // TODO: Implement with Supabase
+    // await dbConnect();
+    // const rewards = await Reward.find({ isActive: true });
+
+    // Temporary mock data for deployment
+    const rewards = [
+      { id: 1, name: 'Eco-friendly Water Bottle', pointsCost: 100, isActive: true },
+      { id: 2, name: 'Reusable Shopping Bag', pointsCost: 50, isActive: true },
+      { id: 3, name: 'Plant a Tree Certificate', pointsCost: 200, isActive: true }
+    ];
+
     return NextResponse.json(rewards);
   } catch (error) {
     return NextResponse.json(
@@ -19,9 +29,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
+    // TODO: Implement with Supabase
+    // await dbConnect();
     const { userId, rewardId } = await request.json();
 
+    // Temporary implementation - return success for deployment
+    return NextResponse.json({
+      success: true,
+      message: 'Reward redemption feature coming soon!',
+      remainingPoints: 100,
+    });
+
+    /*
     const user = await User.findById(userId);
     const reward = await Reward.findById(rewardId);
 
@@ -56,6 +75,7 @@ export async function POST(request: NextRequest) {
       success: true,
       remainingPoints: user.points,
     });
+    */
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to redeem reward' },

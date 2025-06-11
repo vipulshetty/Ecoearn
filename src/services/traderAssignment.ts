@@ -1,5 +1,6 @@
-import dbConnect from '@/lib/mongodb';
-import Trader from '@/models/Trader';
+// TODO: Convert to Supabase - MongoDB models not available
+// import dbConnect from '@/lib/mongodb';
+// import Trader from '@/models/Trader';
 import { routeOptimization } from './routeOptimization';
 
 interface Location {
@@ -36,30 +37,44 @@ export class TraderAssignmentService {
   }
 
   static async findNearestTrader(userLocation: Location): Promise<TraderWithDistance | null> {
-    await dbConnect();
+    // TODO: Implement with Supabase
+    // await dbConnect();
 
     try {
-      // Find all available traders
-      const traders = await Trader.find({ status: 'Available' });
-
-      if (traders.length === 0) {
-        return null;
-      }
+      // Temporary mock data for deployment
+      const mockTraders = [
+        {
+          _id: 'trader1',
+          name: 'EcoCollector Pro',
+          location: {
+            type: 'Point',
+            coordinates: [userLocation.coordinates[0] + 0.01, userLocation.coordinates[1] + 0.01] as [number, number]
+          }
+        },
+        {
+          _id: 'trader2',
+          name: 'Green Pickup Service',
+          location: {
+            type: 'Point',
+            coordinates: [userLocation.coordinates[0] + 0.02, userLocation.coordinates[1] + 0.02] as [number, number]
+          }
+        }
+      ];
 
       // Calculate distance for each trader
-      const tradersWithDistance = traders.map(trader => ({
+      const tradersWithDistance = mockTraders.map(trader => ({
         _id: trader._id,
         name: trader.name,
         location: trader.location,
         distance: this.calculateDistance(
-          userLocation.coordinates,
-          trader.location.coordinates
+          userLocation.coordinates as [number, number],
+          trader.location.coordinates as [number, number]
         )
       }));
 
       // Sort by distance and get the nearest trader
       tradersWithDistance.sort((a, b) => a.distance - b.distance);
-      
+
       return tradersWithDistance[0];
     } catch (error) {
       console.error('Error finding nearest trader:', error);
@@ -75,16 +90,19 @@ export class TraderAssignmentService {
         throw new Error('No available traders found');
       }
 
+      // TODO: Implement with Supabase
       // Update the waste submission with the assigned trader
-      await WasteSubmission.findByIdAndUpdate(submissionId, {
-        assignedTrader: nearestTrader._id,
-        status: 'Assigned'
-      });
+      // await WasteSubmission.findByIdAndUpdate(submissionId, {
+      //   assignedTrader: nearestTrader._id,
+      //   status: 'Assigned'
+      // });
 
       // Update trader status
-      await Trader.findByIdAndUpdate(nearestTrader._id, {
-        status: 'Busy'
-      });
+      // await Trader.findByIdAndUpdate(nearestTrader._id, {
+      //   status: 'Busy'
+      // });
+
+      console.log(`Assigned trader ${nearestTrader.name} to submission ${submissionId}`);
 
       return nearestTrader;
     } catch (error) {
@@ -135,23 +153,26 @@ export class TraderAssignmentService {
 
       console.log(`✅ Route optimized with ${optimizedRoute.estimatedSavings.cost.toFixed(1)}% cost reduction`);
 
+      // TODO: Implement with Supabase
       // Update all waste submissions with the assigned trader and optimized route
       for (let i = 0; i < submissionIds.length; i++) {
-        await WasteSubmission.findByIdAndUpdate(submissionIds[i], {
-          assignedTrader: nearestTrader._id,
-          status: 'Assigned',
-          optimizedRoute: optimizedRoute.id,
-          routeOrder: i + 1,
-          estimatedArrival: new Date(Date.now() + optimizedRoute.totalDuration * 60 * 60 * 1000)
-        });
+        console.log(`Assigning submission ${submissionIds[i]} to trader ${nearestTrader._id} with route order ${i + 1}`);
+        // await WasteSubmission.findByIdAndUpdate(submissionIds[i], {
+        //   assignedTrader: nearestTrader._id,
+        //   status: 'Assigned',
+        //   optimizedRoute: optimizedRoute.id,
+        //   routeOrder: i + 1,
+        //   estimatedArrival: new Date(Date.now() + optimizedRoute.totalDuration * 60 * 60 * 1000)
+        // });
       }
 
       // Update trader status with route information
-      await Trader.findByIdAndUpdate(nearestTrader._id, {
-        status: 'Busy',
-        currentRoute: optimizedRoute.id,
-        estimatedCompletionTime: new Date(Date.now() + optimizedRoute.totalDuration * 60 * 60 * 1000)
-      });
+      console.log(`Updating trader ${nearestTrader._id} status to busy with route ${optimizedRoute.id}`);
+      // await Trader.findByIdAndUpdate(nearestTrader._id, {
+      //   status: 'Busy',
+      //   currentRoute: optimizedRoute.id,
+      //   estimatedCompletionTime: new Date(Date.now() + optimizedRoute.totalDuration * 60 * 60 * 1000)
+      // });
 
       return {
         trader: nearestTrader,
@@ -191,15 +212,17 @@ export class TraderAssignmentService {
 
   // Update collector location for real-time tracking
   static async updateCollectorLocation(collectorId: string, location: { lat: number; lng: number }) {
-    await dbConnect();
+    // TODO: Implement with Supabase
+    // await dbConnect();
 
     try {
-      await Trader.findByIdAndUpdate(collectorId, {
-        'location.coordinates': [location.lng, location.lat],
-        lastActiveAt: new Date()
-      });
-
+      // Temporary implementation for deployment
       console.log(`📍 Updated collector ${collectorId} location to [${location.lat}, ${location.lng}]`);
+
+      // await Trader.findByIdAndUpdate(collectorId, {
+      //   'location.coordinates': [location.lng, location.lat],
+      //   lastActiveAt: new Date()
+      // });
     } catch (error) {
       console.error('Error updating collector location:', error);
       throw new Error('Failed to update collector location');

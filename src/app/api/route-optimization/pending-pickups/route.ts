@@ -62,7 +62,7 @@ export async function GET() {
     }
 
     // Transform data for route optimization
-    const pickupLocations = [];
+    const pickupLocations: any[] = [];
 
     // Add waste submissions
     if (submissions && submissions.length > 0) {
@@ -143,7 +143,7 @@ export async function GET() {
         wasteSubmissions: submissions?.length || 0,
         aiDetections: 0, // No AI detections table in current schema
         totalPoints: pickupLocations.reduce((sum, loc) => sum + (loc.points || 0), 0),
-        wasteTypes: [...new Set(pickupLocations.map(loc => loc.wasteType))]
+        wasteTypes: Array.from(new Set(pickupLocations.map(loc => loc.wasteType)))
       }
     });
 

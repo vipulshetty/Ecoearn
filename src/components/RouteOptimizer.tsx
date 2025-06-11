@@ -42,6 +42,7 @@ interface OptimizedRoute {
     emissions: number;
   };
   efficiency: number;
+  fullRouteCoordinates?: [number, number][];
 }
 
 interface RouteOptimizerProps {

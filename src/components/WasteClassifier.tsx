@@ -190,7 +190,8 @@ export default function WasteClassifier({ imageUrl, onClassified }: WasteClassif
         if (!isMounted) return;
         
         // Provide a user-friendly error message
-        setError(`Failed to analyze image: ${err.message}`);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(`Failed to analyze image: ${errorMessage}`);
       } finally {
         if (isMounted) {
           setPredicting(false);
