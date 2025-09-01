@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UnifiedWasteDetectionProps {
   onDetectionComplete?: (result: WasteAnalysisResult) => void;
+  userEmail?: string;
 }
 
-export default function UnifiedWasteDetection({ onDetectionComplete }: UnifiedWasteDetectionProps) {
+export default function UnifiedWasteDetection({ onDetectionComplete, userEmail = 'demo@example.com' }: UnifiedWasteDetectionProps) {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<WasteAnalysisResult | null>(null);
@@ -77,6 +78,34 @@ export default function UnifiedWasteDetection({ onDetectionComplete }: UnifiedWa
       
       console.log('✅ Detection result:', analysisResult);
       
+      // Save the analysis to database with points
+      try {
+        const file = await fetch(image).then(r => r.blob());
+        const formData = new FormData();
+        formData.append('image', file, 'waste-image.jpg');
+        formData.append('clientAnalysis', JSON.stringify({
+          wasteType: analysisResult.primaryWasteType,
+          confidence: analysisResult.confidence,
+          quality: analysisResult.confidence > 0.8 ? 'excellent' : analysisResult.confidence > 0.6 ? 'good' : 'fair',
+          pointsEarned: analysisResult.points,
+          recyclable: analysisResult.recyclable
+        }));
+        formData.append('userEmail', userEmail);
+
+        const saveResponse = await fetch('/api/analyze-waste', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (saveResponse.ok) {
+          console.log('✅ Analysis saved to database with points!');
+        } else {
+          console.warn('⚠️ Failed to save analysis to database');
+        }
+      } catch (saveError) {
+        console.error('❌ Error saving analysis:', saveError);
+      }
+      
       setResult(analysisResult);
       
       // Call callback if provided
@@ -109,7 +138,7 @@ export default function UnifiedWasteDetection({ onDetectionComplete }: UnifiedWa
     
     const detections = predictions.map(pred => ({
       className: pred.class || 'unknown',
-      wasteCategory: wasteMapping[pred.class] || 'other',
+      wasteCategory: (wasteMapping[pred.class] || 'other') as any,
       confidence: pred.score || 0.5,
       bbox: {
         x: pred.bbox?.[0] || 0,

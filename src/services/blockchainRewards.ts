@@ -1,4 +1,5 @@
 // Free Blockchain Rewards System using Testnets and Free Services
+import { supabase } from '@/lib/supabase';
 
 // Crypto utility functions (simplified for free implementation)
 const CryptoUtils = {
@@ -251,33 +252,70 @@ export class FreeBlockchainRewards {
   }
 
   // Get user's blockchain wallet info
-  public async getUserWalletInfo(userId: string): Promise<{
+  public async getUserWalletInfo(userEmail: string): Promise<{
     address: string;
     balances: Record<string, number>;
     nfts: NFTReward[];
     vouchers: DigitalVoucher[];
+    recentTransactions: any[];
   }> {
     
-    const address = this.generateTestnetAddress(userId);
+    const address = this.generateTestnetAddress(userEmail);
     
-    // Simulate fetching balances from testnets
-    const balances = {
-      'testnet-btc': Math.random() * 0.01,
-      'testnet-eth': Math.random() * 0.1,
-      'polygon-matic': Math.random() * 10
+    // Fetch user's actual reward transactions from database
+    const { data: transactions, error } = await supabase
+      .from('reward_transactions')
+      .select('*')
+      .eq('user_email', userEmail)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Failed to fetch user transactions:', error);
+    }
+
+    const balances: Record<string, number> = {
+      'testnet-btc': 0,
+      'testnet-eth': 0,
+      'polygon-matic': 0
     };
 
-    // Fetch user's NFTs (simulated)
-    const nfts = await this.getUserNFTs(userId);
-    
-    // Fetch user's vouchers (simulated)
-    const vouchers = await this.getUserVouchers(userId);
+    const nfts: NFTReward[] = [];
+    const vouchers: DigitalVoucher[] = [];
+    const recentTransactions: any[] = [];
+
+    // Process transactions to build wallet data
+    if (transactions) {
+      for (const tx of transactions) {
+        recentTransactions.push({
+          id: tx.transaction_id,
+          type: tx.reward_type,
+          pointsSpent: tx.points_spent,
+          date: tx.created_at,
+          status: tx.status
+        });
+
+        if (tx.reward_type === 'crypto' && tx.reward_data) {
+          const cryptoReward = tx.reward_data as CryptoReward;
+          balances[cryptoReward.type] += cryptoReward.amount;
+        } else if (tx.reward_type === 'nft' && tx.reward_data) {
+          nfts.push(tx.reward_data as NFTReward);
+        } else if (tx.reward_type === 'voucher' && tx.reward_data) {
+          const voucher = tx.reward_data as DigitalVoucher;
+          // Check if voucher is still valid
+          if (new Date(voucher.expiryDate) > new Date()) {
+            vouchers.push(voucher);
+          }
+        }
+      }
+    }
 
     return {
       address,
       balances,
       nfts,
-      vouchers
+      vouchers,
+      recentTransactions
     };
   }
 
@@ -405,7 +443,7 @@ export class FreeBlockchainRewards {
 
   // Reward distribution based on points
   public async distributeReward(
-    userId: string,
+    userEmail: string,
     pointsSpent: number,
     rewardType: 'crypto' | 'nft' | 'voucher',
     specificType?: string
@@ -413,23 +451,71 @@ export class FreeBlockchainRewards {
     
     let reward: CryptoReward | NFTReward | DigitalVoucher;
     
+    // Check if user has enough points
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('points')
+      .eq('email', userEmail)
+      .single();
+
+    if (userError || !userData || (userData.points || 0) < pointsSpent) {
+      throw new Error('Insufficient points or user not found');
+    }
+    
     switch (rewardType) {
       case 'crypto':
-        reward = await this.convertPointsToCrypto(userId, pointsSpent, 'polygon-matic');
+        reward = await this.convertPointsToCrypto(userEmail, pointsSpent, 'polygon-matic');
         break;
       case 'nft':
-        reward = await this.mintEcoNFT(userId, 'Eco Warrior', 'mixed', pointsSpent);
+        reward = await this.mintEcoNFT(userEmail, 'Eco Warrior', 'mixed', pointsSpent);
         break;
       case 'voucher':
-        reward = await this.createDigitalVoucher(userId, specificType || 'eco-store-discount', pointsSpent);
+        reward = await this.createDigitalVoucher(userEmail, specificType || 'eco-store-discount', pointsSpent);
         break;
       default:
         throw new Error('Invalid reward type');
     }
 
+    const transactionId = `tx-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+    // Store the transaction in the database
+    const { data: transactionData, error: transactionError } = await supabase
+      .from('reward_transactions')
+      .insert({
+        user_email: userEmail,
+        transaction_id: transactionId,
+        reward_type: rewardType,
+        specific_type: specificType,
+        points_spent: pointsSpent,
+        reward_data: reward,
+        blockchain_tx_hash: rewardType === 'crypto' ? (reward as CryptoReward).transactionHash : undefined,
+        status: 'completed'
+      })
+      .select()
+      .single();
+
+    if (transactionError) {
+      console.error('Failed to store reward transaction:', transactionError);
+      // Don't fail the whole transaction, but log the error
+    }
+
+    // Deduct points from user account
+    const { error: pointsError } = await supabase
+      .from('users')
+      .update({ 
+        points: userData.points - pointsSpent,
+        updated_at: new Date().toISOString()
+      })
+      .eq('email', userEmail);
+
+    if (pointsError) {
+      console.error('Failed to deduct points:', pointsError);
+      throw new Error('Failed to deduct points from user account');
+    }
+
     const transaction: RewardTransaction = {
-      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      userId,
+      id: transactionId,
+      userId: userEmail,
       type: rewardType,
       pointsSpent,
       reward,
@@ -437,7 +523,7 @@ export class FreeBlockchainRewards {
       blockchainTxHash: rewardType === 'crypto' ? (reward as CryptoReward).transactionHash : undefined
     };
 
-    console.log(`🎁 Reward distributed: ${rewardType} for ${pointsSpent} points`);
+    console.log(`🎁 Reward distributed: ${rewardType} for ${pointsSpent} points to ${userEmail}`);
     return transaction;
   }
 

@@ -1,7 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const categories = [
   { id: 'all', name: 'All Rewards' },
@@ -18,7 +18,7 @@ const rewards = [
     description: 'Redeem your points for an Amazon gift card.',
     points: 5000,
     category: 'gift-cards',
-    image: '/marketplace/amazon-card.jpg',
+    image: '/marketplace/amazon-card.svg',
     stock: 50,
     featured: true,
   },
@@ -28,7 +28,7 @@ const rewards = [
     description: 'High-quality stainless steel water bottle.',
     points: 2000,
     category: 'eco-products',
-    image: '/marketplace/water-bottle.jpg',
+    image: '/marketplace/water-bottle.svg',
     stock: 100,
   },
   {
@@ -37,7 +37,7 @@ const rewards = [
     description: 'Plant a tree in your name.',
     points: 1000,
     category: 'donations',
-    image: '/marketplace/tree-planting.jpg',
+    image: '/marketplace/tree-planting.svg',
     stock: 999,
   },
   {
@@ -46,7 +46,7 @@ const rewards = [
     description: 'Join an exclusive eco-friendly workshop.',
     points: 3000,
     category: 'experiences',
-    image: '/marketplace/workshop.jpg',
+    image: '/marketplace/workshop.svg',
     stock: 20,
   },
   // Add more rewards as needed
@@ -70,6 +70,61 @@ const item = {
 export default function Marketplace() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [userPoints, setUserPoints] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const userEmail = 'demo@ecoearn.com'; // In production, get from auth context
+
+  useEffect(() => {
+    loadUserPoints();
+  }, []);
+
+  const loadUserPoints = async () => {
+    try {
+      const response = await fetch(`/api/users/points?email=${encodeURIComponent(userEmail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserPoints(data.points);
+      }
+    } catch (error) {
+      console.error('Failed to load user points:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRedeemReward = async (reward: any) => {
+    if (userPoints < reward.points) {
+      alert(`Insufficient points! You need ${reward.points} but only have ${userPoints}.`);
+      return;
+    }
+
+    try {
+      // Use the points API to deduct points
+      const response = await fetch('/api/users/points', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userEmail,
+          pointsChange: reward.points,
+          operation: 'subtract',
+          reason: `Redeemed ${reward.title}`
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserPoints(data.points);
+        alert(`Successfully redeemed ${reward.title}!`);
+      } else {
+        throw new Error('Failed to process redemption');
+      }
+    } catch (error) {
+      console.error('Error redeeming reward:', error);
+      alert('Failed to redeem reward. Please try again.');
+    }
+  };
 
   const filteredRewards = rewards.filter((reward) => {
     const matchesCategory = selectedCategory === 'all' || reward.category === selectedCategory;
@@ -330,9 +385,15 @@ export default function Marketplace() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                  onClick={() => handleRedeemReward(reward)}
+                  disabled={loading || userPoints < reward.points}
+                  className={`w-full mt-4 py-2 rounded-lg font-medium transition-colors ${
+                    userPoints >= reward.points
+                      ? 'bg-primary-600 text-white hover:bg-primary-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  Redeem Now
+                  {userPoints >= reward.points ? 'Redeem Now' : `Need ${reward.points - userPoints} more`}
                 </motion.button>
               </div>
             </motion.div>

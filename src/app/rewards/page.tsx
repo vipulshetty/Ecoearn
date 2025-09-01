@@ -22,14 +22,28 @@ interface Reward {
 }
 
 export default function Rewards() {
-  const [points, setPoints] = useState(2500); // Demo points
+  const [points, setPoints] = useState(0); // Start with 0, load from API
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState<string | null>(null);
+  const userEmail = 'demo@ecoearn.com'; // In production, get from auth context
 
   useEffect(() => {
+    loadUserPoints();
     loadRewards();
   }, []);
+
+  const loadUserPoints = async () => {
+    try {
+      const response = await fetch(`/api/users/points?email=${encodeURIComponent(userEmail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPoints(data.points);
+      }
+    } catch (error) {
+      console.error('Failed to load user points:', error);
+    }
+  };
 
   const loadRewards = async () => {
     try {
@@ -88,7 +102,7 @@ export default function Rewards() {
 
       // Use the blockchain rewards service
       const transaction = await blockchainRewards.distributeReward(
-        'demo-user',
+        userEmail,
         reward.pointsCost,
         reward.type,
         reward.specificType
@@ -96,15 +110,15 @@ export default function Rewards() {
 
       console.log('Reward redeemed:', transaction);
 
-      // Update points
-      setPoints(prev => prev - reward.pointsCost);
+      // Update points by reloading from API
+      await loadUserPoints();
 
       // Show success message
       alert(`Successfully redeemed ${reward.title}! Check your wallet for the reward.`);
 
     } catch (error) {
       console.error('Error redeeming reward:', error);
-      alert('Failed to redeem reward. Please try again.');
+      alert(`Failed to redeem reward: ${error instanceof Error ? error.message : 'Please try again.'}`);
     } finally {
       setRedeeming(null);
     }

@@ -36,11 +36,12 @@ interface WalletData {
 }
 
 interface BlockchainWalletProps {
-  userId: string;
+  userEmail: string;
   userPoints: number;
 }
 
-export default function BlockchainWallet({ userId, userPoints }: BlockchainWalletProps) {
+export default function BlockchainWallet({ userEmail, userPoints }: BlockchainWalletProps) {
+  const [realTimePoints, setRealTimePoints] = useState(userPoints);
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'crypto' | 'nfts' | 'vouchers'>('crypto');
@@ -51,61 +52,44 @@ export default function BlockchainWallet({ userId, userPoints }: BlockchainWalle
   useEffect(() => {
     loadWalletData();
     loadRewardCatalog();
-  }, [userId]);
+    loadCurrentPoints();
+  }, [userEmail]);
+
+  const loadCurrentPoints = async () => {
+    try {
+      const response = await fetch(`/api/users/points?email=${encodeURIComponent(userEmail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setRealTimePoints(data.points);
+      }
+    } catch (error) {
+      console.error('Failed to load current points:', error);
+    }
+  };
 
   const loadWalletData = async () => {
     try {
       setLoading(true);
-      // Load demo wallet data
-      const demoData = {
-        address: '0x742d35Cc6634C0532925a3b8D4C9db96590c4C87',
-        balances: {
-          'testnet-btc': 0.0025,
-          'testnet-eth': 0.15,
-          'polygon-matic': 12.5
-        },
-        nfts: [
-          {
-            tokenId: 'eco-nft-001',
-            name: 'Plastic Recycling Champion',
-            description: 'Awarded for recycling 100 plastic items',
-            imageUrl: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
-            attributes: { achievement: 'Champion', wasteType: 'plastic' }
-          },
-          {
-            tokenId: 'eco-nft-002',
-            name: 'Eco Warrior Badge',
-            description: 'Earned through consistent recycling efforts',
-            imageUrl: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
-            attributes: { achievement: 'Warrior', level: 'Gold' }
-          }
-        ],
-        vouchers: [
-          {
-            id: 'voucher-001',
-            title: '10% Off Eco Products',
-            description: 'Valid at partner eco-stores',
-            value: 10,
-            partnerName: 'Green Living Store',
-            qrCode: 'qr-demo-code-001',
-            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            isRedeemed: false
-          },
-          {
-            id: 'voucher-002',
-            title: 'Free Coffee Voucher',
-            description: 'Redeem at participating cafes',
-            value: 5,
-            partnerName: 'Eco Cafe Network',
-            qrCode: 'qr-demo-code-002',
-            expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-            isRedeemed: true
-          }
-        ]
-      };
-      setWalletData(demoData);
+      const walletInfo = await blockchainRewards.getUserWalletInfo(userEmail);
+      setWalletData({
+        address: walletInfo.address,
+        balances: walletInfo.balances,
+        nfts: walletInfo.nfts,
+        vouchers: walletInfo.vouchers
+      });
     } catch (error) {
       console.error('Failed to load wallet data:', error);
+      // Fallback to empty wallet data
+      setWalletData({
+        address: '0x0000000000000000000000000000000000000000',
+        balances: {
+          'testnet-btc': 0,
+          'testnet-eth': 0,
+          'polygon-matic': 0
+        },
+        nfts: [],
+        vouchers: []
+      });
     } finally {
       setLoading(false);
     }
@@ -120,13 +104,13 @@ export default function BlockchainWallet({ userId, userPoints }: BlockchainWalle
     try {
       const pointsRequired = getPointsRequired(rewardType, specificType);
       
-      if (userPoints < pointsRequired) {
-        alert(`Insufficient points! You need ${pointsRequired} points but only have ${userPoints}.`);
+      if (realTimePoints < pointsRequired) {
+        alert(`Insufficient points! You need ${pointsRequired} points but only have ${realTimePoints}.`);
         return;
       }
 
       const transaction = await blockchainRewards.distributeReward(
-        userId,
+        userEmail,
         pointsRequired,
         rewardType,
         specificType
@@ -134,18 +118,19 @@ export default function BlockchainWallet({ userId, userPoints }: BlockchainWalle
 
       console.log('Reward claimed:', transaction);
       
-      // Refresh wallet data
+      // Refresh wallet data and points
       await loadWalletData();
+      await loadCurrentPoints();
       
       // Close modal
       setShowRewardModal(false);
       
       // Show success message
-      alert(`Successfully claimed ${rewardType} reward!`);
+      alert(`Successfully claimed ${rewardType} reward! Check your wallet for the reward.`);
       
     } catch (error) {
       console.error('Failed to claim reward:', error);
-      alert('Failed to claim reward. Please try again.');
+      alert(`Failed to claim reward: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   };
 
@@ -206,7 +191,7 @@ export default function BlockchainWallet({ userId, userPoints }: BlockchainWalle
           </div>
           <div className="text-right">
             <p className="text-sm opacity-80">Available Points</p>
-            <p className="text-3xl font-bold">{userPoints.toLocaleString()}</p>
+            <p className="text-3xl font-bold">{realTimePoints.toLocaleString()}</p>
           </div>
         </div>
       </motion.div>
@@ -405,11 +390,11 @@ export default function BlockchainWallet({ userId, userPoints }: BlockchainWalle
                       </p>
                     </div>
                     <div className="text-right">
-                      {userPoints >= reward.pointsRequired ? (
+                      {realTimePoints >= reward.pointsRequired ? (
                         <span className="text-green-600 font-medium">Available</span>
                       ) : (
                         <span className="text-red-500 font-medium">
-                          Need {reward.pointsRequired - userPoints} more
+                          Need {reward.pointsRequired - realTimePoints} more
                         </span>
                       )}
                     </div>

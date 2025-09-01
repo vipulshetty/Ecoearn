@@ -1,6 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 const communityPosts = [
   {
@@ -8,11 +9,11 @@ const communityPosts = [
     title: 'Beach Cleanup Initiative',
     author: {
       name: 'Sarah Johnson',
-      image: '/testimonials/sarah.jpg',
+      image: null, // Remove broken image
       role: 'Environmental Activist',
     },
     content: 'Join us this weekend for our monthly beach cleanup! Last month we collected over 500kg of waste.',
-    image: '/community/beach-cleanup.jpg',
+    image: '/community/beach-cleanup.svg',
     likes: 234,
     comments: 45,
     participants: 89,
@@ -24,11 +25,11 @@ const communityPosts = [
     title: 'Plastic-Free Challenge',
     author: {
       name: 'Mike Chen',
-      image: '/testimonials/mike.jpg',
+      image: null, // Remove broken image
       role: 'Community Leader',
     },
     content: 'Take part in our 30-day plastic-free challenge! Share your progress and win eco-friendly prizes.',
-    image: '/community/plastic-free.jpg',
+    image: '/community/plastic-free.svg',
     likes: 567,
     comments: 89,
     participants: 234,
@@ -46,7 +47,7 @@ const upcomingEvents = [
     time: '10:00 AM',
     location: 'City Community Center',
     participants: 45,
-    image: '/community/workshop.jpg',
+    image: '/community/workshop.svg',
   },
   {
     id: 2,
@@ -55,7 +56,7 @@ const upcomingEvents = [
     time: '2:00 PM',
     location: 'Green Park',
     participants: 32,
-    image: '/community/meetup.jpg',
+    image: '/community/meetup.svg',
   },
 ];
 
@@ -75,6 +76,27 @@ const item = {
 };
 
 export default function Community() {
+  const [communityData, setCommunityData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCommunityData();
+  }, []);
+
+  const loadCommunityData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/community');
+      if (response.ok) {
+        const data = await response.json();
+        setCommunityData(data);
+      }
+    } catch (error) {
+      console.error('Failed to load community data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -188,10 +210,10 @@ export default function Community() {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
-              { value: '15K+', label: 'Active Members' },
-              { value: '2.3M', label: 'Waste Items Recycled' },
+              { value: `${communityData?.stats?.totalUsers || 15}K+`, label: 'Active Members' },
+              { value: `${Math.floor((communityData?.stats?.totalDetections || 2300) / 1000 * 10) / 10}M`, label: 'Waste Items Recycled' },
               { value: '450+', label: 'Community Events' },
-              { value: '89%', label: 'Satisfaction Rate' }
+              { value: `${communityData?.stats?.satisfactionRate || 89}%`, label: 'Satisfaction Rate' }
             ].map((stat, index) => (
               <motion.div
                 key={index}
@@ -257,23 +279,19 @@ export default function Community() {
                 variants={item}
                 className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow"
               >
-                <div className="relative h-64">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+              <div className="relative h-64">
+                <Image
+                  src={post.image}
+                  alt={post.title}
+                  fill
+                  className="object-cover"
+                />
+              </div>
                 <div className="p-6">
                   <div className="flex items-center space-x-4 mb-4">
-                    <Image
-                      src={post.author.image}
-                      alt={post.author.name}
-                      width={48}
-                      height={48}
-                      className="rounded-full"
-                    />
+                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-lg font-bold text-primary-600">
+                      {post.author.name.charAt(0)}
+                    </div>
                     <div>
                       <h3 className="font-medium text-gray-900">{post.author.name}</h3>
                       <p className="text-sm text-gray-500">{post.author.role}</p>
@@ -367,27 +385,31 @@ export default function Community() {
             >
               <h2 className="text-xl font-bold text-gray-900 mb-6">Top Contributors</h2>
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="flex items-center space-x-4 p-2"
-                  >
-                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
-                      {i}
-                    </div>
-                    <Image
-                      src={`/testimonials/user${i}.jpg`}
-                      alt={`Top contributor ${i}`}
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
-                    <div>
-                      <h3 className="font-medium text-gray-900">User Name</h3>
-                      <p className="text-sm text-gray-500">1,234 points</p>
-                    </div>
+                {loading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
                   </div>
-                ))}
+                ) : (
+                  communityData?.leaderboard?.slice(0, 5).map((user: any) => (
+                    <div
+                      key={user.email}
+                      className="flex items-center space-x-4 p-2"
+                    >
+                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
+                        {user.rank}
+                      </div>
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{user.name}</h3>
+                        <p className="text-sm text-gray-500">{user.points.toLocaleString()} points</p>
+                      </div>
+                    </div>
+                  )) || (
+                    <p className="text-gray-500 text-center py-4">No data available</p>
+                  )
+                )}
               </div>
             </motion.div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import RouteOptimizer from '@/components/RouteOptimizer';
+import AutoRouteDisplay from '@/components/AutoRouteDisplay';
 import { TruckIcon, MapIcon, ClockIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 
 interface RouteStats {
@@ -21,11 +21,70 @@ export default function RoutingPage() {
     summary: any;
   } | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [selectedTraderData, setSelectedTraderData] = useState<any>(null);
 
   useEffect(() => {
     loadRouteStats();
-    loadRealPickupData();
+    
+    // Check if we have trader selection data from analyze page
+    const urlParams = new URLSearchParams(window.location.search);
+    const routeData = urlParams.get('data');
+    
+    if (routeData) {
+      try {
+        const data = JSON.parse(routeData);
+        setSelectedTraderData(data);
+        loadSpecificRouteData(data);
+      } catch (error) {
+        console.error('Error parsing route data:', error);
+        loadRealPickupData();
+      }
+    } else {
+      loadRealPickupData();
+    }
   }, []);
+
+  const loadSpecificRouteData = async (routeData: any) => {
+    try {
+      setDataLoading(true);
+      
+      // Create pickup data based on selected trader and user location
+      const specificPickupData = {
+        pickupLocations: routeData.locations.map((loc: any, index: number) => ({
+          id: `pickup-${index}`,
+          lat: loc.lat,
+          lng: loc.lng,
+          address: loc.address || `Pickup Location ${index + 1}`,
+          wasteType: loc.wasteType || 'mixed',
+          priority: 1,
+          estimatedWeight: 2.5,
+          points: routeData.analysisResult?.pointsEarned || 10,
+          submissionType: 'user_submission',
+          createdAt: new Date().toISOString()
+        })),
+        startLocation: {
+          lat: routeData.selectedTrader.location.lat,
+          lng: routeData.selectedTrader.location.lng,
+          address: `${routeData.selectedTrader.name} - Collection Point`
+        },
+        summary: {
+          wasteSubmissions: 1,
+          aiDetections: 1,
+          totalPoints: routeData.analysisResult?.pointsEarned || 10,
+          wasteTypes: [routeData.analysisResult?.wasteType || 'mixed']
+        },
+        selectedTrader: routeData.selectedTrader
+      };
+      
+      setPickupData(specificPickupData);
+      console.log(`🎯 Loaded specific route for trader: ${routeData.selectedTrader.name}`);
+    } catch (error) {
+      console.error('Error loading specific route data:', error);
+      loadRealPickupData(); // Fallback
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   const loadRealPickupData = async () => {
     try {
@@ -107,10 +166,35 @@ export default function RoutingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="text-4xl font-bold mb-4">🚛 AI Route Optimizer</h1>
-              <p className="text-orange-100 text-lg max-w-2xl mx-auto">
-                Optimize waste collection routes with machine learning for maximum efficiency and minimum environmental impact
-              </p>
+              {selectedTraderData ? (
+                <>
+                  <h1 className="text-4xl font-bold mb-4">🎯 Automatic Route to {selectedTraderData.selectedTrader.name}</h1>
+                  <p className="text-orange-100 text-lg max-w-3xl mx-auto">
+                    <strong>OSPF Algorithm</strong> calculated the optimal collection route automatically - no manual optimization needed!
+                  </p>
+                  <div className="mt-4 inline-flex items-center space-x-4 text-sm">
+                    <span className="bg-white/20 px-3 py-1 rounded-full flex items-center">
+                      📍 Distance: {selectedTraderData.selectedTrader.distance} km
+                    </span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full flex items-center">
+                      🕒 ETA: {selectedTraderData.selectedTrader.estimatedArrival}
+                    </span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full flex items-center">
+                      ⭐ Rating: {selectedTraderData.selectedTrader.rating}
+                    </span>
+                    <span className="bg-green-400/30 px-3 py-1 rounded-full flex items-center text-green-100">
+                      🤖 Auto-calculated
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-4xl font-bold mb-4">🚛 OSPF Route Optimizer</h1>
+                  <p className="text-orange-100 text-lg max-w-2xl mx-auto">
+                    Advanced shortest path algorithm for automatic route calculation - just like Uber and Ola!
+                  </p>
+                </>
+              )}
             </motion.div>
           </div>
         </div>
@@ -214,7 +298,37 @@ export default function RoutingPage() {
             transition={{ delay: 0.4 }}
             className="bg-white rounded-xl border p-6 mb-8"
           >
-            <h2 className="text-xl font-semibold mb-4">📍 Real Pickup Data</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              {selectedTraderData ? 
+                `🎯 Selected Route: OSPF Auto-Calculated → ${selectedTraderData.selectedTrader.name}` : 
+                '🗺️ OSPF Route Network'
+              }
+            </h2>
+            
+            {selectedTraderData && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-medium text-blue-800 mb-2">Waste Analysis Result</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Type:</span>
+                    <p className="font-medium">{selectedTraderData.analysisResult?.wasteType}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Quality:</span>
+                    <p className="font-medium">{selectedTraderData.analysisResult?.quality}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Confidence:</span>
+                    <p className="font-medium">{Math.round((selectedTraderData.analysisResult?.confidence || 0) * 100)}%</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Points:</span>
+                    <p className="font-medium text-green-600">+{selectedTraderData.analysisResult?.pointsEarned}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">
@@ -252,19 +366,65 @@ export default function RoutingPage() {
           </motion.div>
         )}
 
-        {/* Route Optimizer Component */}
+        {/* Auto Route Display Component - Uber/Ola Style */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
+          className="bg-white rounded-xl shadow-lg overflow-hidden"
         >
-          {pickupData && (
-            <RouteOptimizer
-              collectorId="real-collector"
-              pickupLocations={pickupData.pickupLocations}
-              startLocation={pickupData.startLocation}
-            />
-          )}
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-4 flex items-center">
+              🗺️ Optimal Route Display
+              <span className="ml-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                Auto-calculated
+              </span>
+            </h2>
+            
+            {selectedTraderData && pickupData ? (
+              <>
+                {console.log('🐛 Debug - Route Display Data:', { selectedTraderData, pickupData })}
+                <AutoRouteDisplay
+                  traderLocation={{
+                    lat: selectedTraderData.selectedTrader.location.lat,
+                    lng: selectedTraderData.selectedTrader.location.lng,
+                    name: selectedTraderData.selectedTrader.name
+                  }}
+                  userLocation={{
+                    lat: pickupData.pickupLocations[0]?.lat || 40.7589,
+                    lng: pickupData.pickupLocations[0]?.lng || -73.9851
+                  }}
+                  onRouteCalculated={(route) => {
+                    console.log('✅ Route calculated automatically:', route);
+                  }}
+                />
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🗺️</div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Route Data Available
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  Submit waste from the waste submission page to automatically calculate the optimal route to traders.
+                </p>
+                <div className="space-x-4">
+                  <a 
+                    href="/waste/submit" 
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    📤 Submit Waste
+                  </a>
+                  <a 
+                    href="/test-route" 
+                    className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    🧪 Test Route
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
         </motion.div>
       </div>
     </div>

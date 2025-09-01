@@ -67,7 +67,14 @@ export async function POST(request: Request) {
     }
 
     // Try OpenRouteService API (server-side, no CORS issues)
-    const openRouteApiKey = process.env.NEXT_PUBLIC_OPENROUTE_API_KEY;
+    const openRouteApiKey = process.env.OPENROUTE_API_KEY || process.env.NEXT_PUBLIC_OPENROUTE_API_KEY;
+    
+    console.log('🔍 API Key Debug:', {
+      hasKey: !!openRouteApiKey,
+      keyLength: openRouteApiKey?.length || 0,
+      keyStart: openRouteApiKey ? openRouteApiKey.substring(0, 8) + '...' : 'None',
+      isPlaceholder: openRouteApiKey === 'your_openroute_api_key_here'
+    });
     
     if (openRouteApiKey && openRouteApiKey !== 'your_openroute_api_key_here') {
       try {
@@ -175,21 +182,21 @@ export async function POST(request: Request) {
       console.log('ℹ️ OpenRouteService API key not configured, using Haversine calculation');
     }
 
-    // Fallback to Haversine formula calculation
+    // Fallback to enhanced route simulation with realistic waypoints
     const distance = calculateHaversineDistance(from, to);
     const estimatedSpeed = vehicleType === 'bike' ? 15 : 40; // km/h
     const duration = distance / estimatedSpeed;
 
-    // For fallback, just use straight line
-    const routeCoordinates: [number, number][] = [[from.lat, from.lng], [to.lat, to.lng]];
+    // Create realistic curved route with multiple waypoints
+    const routeCoordinates = generateRealisticRoute(from, to, distance);
 
-    console.log(`📐 Haversine fallback: ${distance.toFixed(2)}km, ${(duration * 60).toFixed(1)}min`);
+    console.log(`🛣️ Enhanced fallback: ${distance.toFixed(2)}km, ${(duration * 60).toFixed(1)}min, ${routeCoordinates.length} waypoints`);
 
     return NextResponse.json({
       distance,
       duration,
       routeCoordinates,
-      source: 'haversine'
+      source: 'enhanced_simulation'
     });
 
   } catch (error) {
@@ -199,6 +206,82 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// Generate realistic road-like route with multiple waypoints using OSPF-style network
+function generateRealisticRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }, distance: number): [number, number][] {
+  const waypoints: [number, number][] = [];
+  
+  // Calculate number of intermediate points based on distance
+  const numPoints = Math.max(8, Math.min(25, Math.floor(distance * 8))); // 8-25 points
+  
+  // Create OSPF-style network nodes around the route
+  const centerLat = (from.lat + to.lat) / 2;
+  const centerLng = (from.lng + to.lng) / 2;
+  const latRange = Math.abs(to.lat - from.lat) * 1.5;
+  const lngRange = Math.abs(to.lng - from.lng) * 1.5;
+  
+  // Generate network of junction points
+  const networkNodes: { lat: number; lng: number; id: string; weight: number }[] = [];
+  
+  // Add fixed network nodes in a grid pattern
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 3; j++) {
+      const lat = centerLat - latRange/2 + (latRange * i / 4);
+      const lng = centerLng - lngRange/2 + (lngRange * j / 2);
+      const weight = Math.random() * 0.3 + 0.7; // Random weights for realistic routing
+      networkNodes.push({ lat, lng, id: `N${i}${j}`, weight });
+    }
+  }
+  
+  // Start point
+  waypoints.push([from.lat, from.lng]);
+  
+  // Find optimal path through network using simplified Dijkstra
+  let currentPos = from;
+  const visited = new Set<string>();
+  
+  for (let step = 0; step < numPoints - 2; step++) {
+    // Find best next node
+    let bestNode = null;
+    let bestScore = Infinity;
+    
+    for (const node of networkNodes) {
+      if (visited.has(node.id)) continue;
+      
+      const distToCurrent = calculateHaversineDistance(currentPos, node);
+      const distToTarget = calculateHaversineDistance(node, to);
+      const roadDeviation = Math.abs(0.5 - step / (numPoints - 2)) * 0.3; // Prefer middle route
+      
+      // OSPF-style score: distance + weight + deviation penalty
+      const score = (distToCurrent + distToTarget) * node.weight + roadDeviation;
+      
+      if (score < bestScore) {
+        bestScore = score;
+        bestNode = node;
+      }
+    }
+    
+    if (bestNode) {
+      // Add some road-like curvature
+      const prevPoint = waypoints[waypoints.length - 1];
+      const midLat = (prevPoint[0] + bestNode.lat) / 2;
+      const midLng = (prevPoint[1] + bestNode.lng) / 2;
+      
+      // Add curve deviation
+      const curveOffset = (Math.random() - 0.5) * 0.001;
+      waypoints.push([midLat + curveOffset, midLng + curveOffset]);
+      waypoints.push([bestNode.lat, bestNode.lng]);
+      
+      currentPos = bestNode;
+      visited.add(bestNode.id);
+    }
+  }
+  
+  // End point
+  waypoints.push([to.lat, to.lng]);
+  
+  return waypoints;
 }
 
 // Haversine formula to calculate distance between two points
