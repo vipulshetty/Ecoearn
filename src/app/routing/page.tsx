@@ -2,8 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import AutoRouteDisplay from '@/components/AutoRouteDisplay';
+import dynamic from 'next/dynamic';
 import { TruckIcon, MapIcon, ClockIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+
+// Dynamic import to prevent SSR issues
+const AutoRouteDisplay = dynamic(() => import('@/components/AutoRouteDisplay'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[600px] bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+        <p className="text-gray-600 text-sm">Loading automatic route display...</p>
+      </div>
+    </div>
+  )
+});
 
 interface RouteStats {
   routesOptimized: number;

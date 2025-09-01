@@ -1,6 +1,19 @@
 'use client';
 
-import AutoRouteDisplay from '@/components/AutoRouteDisplay';
+import dynamic from 'next/dynamic';
+
+// Dynamic import to prevent SSR issues
+const AutoRouteDisplay = dynamic(() => import('@/components/AutoRouteDisplay'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[600px] bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600 text-sm">Loading route display...</p>
+      </div>
+    </div>
+  )
+});
 
 export default function TestRoutePage() {
   // Test data to debug the AutoRouteDisplay component
