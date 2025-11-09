@@ -1,0 +1,11 @@
+{
+  "name": "notification-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "nodemailer": "^6.9.7",
+    "twilio": "^4.19.0",
+    "web-push": "^3.6.6"
+  }
+}

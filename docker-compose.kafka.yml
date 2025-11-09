@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Apache Kafka (FREE - runs on Oracle Cloud Always Free)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      - ecoearn-kafka
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - ecoearn-kafka
+
+  # Kafka UI (FREE monitoring dashboard)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ecoearn-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - ecoearn-kafka
+
+  # Redis for caching (enhances your current setup)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - ecoearn-kafka
+
+  # AI Processing Worker (FREE - processes waste detection)
+  ai-worker:
+    build:
+      context: ./services/ai-worker
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - REDIS_URL=redis://redis:6379
+      - WORKER_TYPE=ai-detection
+    volumes:
+      - ./models:/app/models
+    networks:
+      - ecoearn-kafka
+    deploy:
+      replicas: 2
+
+  # Route Optimization Worker (FREE - handles complex routing)
+  route-worker:
+    build:
+      context: ./services/route-worker
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - REDIS_URL=redis://redis:6379
+      - WORKER_TYPE=route-optimization
+    networks:
+      - ecoearn-kafka
+    deploy:
+      replicas: 1
+
+  # Analytics Service (FREE - processes user behavior)
+  analytics-service:
+    build:
+      context: ./services/analytics
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3001:3000"
+    networks:
+      - ecoearn-kafka
+
+  # Notification Service (FREE - handles alerts)
+  notification-service:
+    build:
+      context: ./services/notifications
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    networks:
+      - ecoearn-kafka
+
+volumes:
+  zookeeper_data:
+  kafka_data:
+  redis_data:
+
+networks:
+  ecoearn-kafka:
+    driver: bridge

@@ -75,7 +75,8 @@ Focus on these waste categories:
 Be accurate with confidence scores (0.0-1.0) and provide realistic bounding box coordinates relative to image dimensions.
 `;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  // Use Gemini 2.0 Flash (latest model with multimodal support)
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -95,12 +96,24 @@ Be accurate with confidence scores (0.0-1.0) and provide realistic bounding box 
             }
           ]
         }
-      ]
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 2048,
+      }
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
+    const errorBody = await response.text();
+    console.error('❌ Gemini API Error Details:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorBody
+    });
+    throw new Error(`Gemini API error: ${response.status} - ${errorBody}`);
   }
 
   const data = await response.json();

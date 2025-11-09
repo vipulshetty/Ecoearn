@@ -1,0 +1,11 @@
+{
+  "name": "route-worker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "redis": "^4.6.7",
+    "axios": "^1.6.2",
+    "turf": "^3.0.14"
+  }
+}

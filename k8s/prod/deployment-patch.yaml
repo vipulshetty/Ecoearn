@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecoearn-app
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: ecoearn-app
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        env:
+        - name: NODE_ENV
+          value: "production"
