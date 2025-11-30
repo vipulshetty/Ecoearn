@@ -18,34 +18,6 @@ class EcoearnKafkaClient {
       // Add authentication for production
       // sasl: {
       //   mechanism: 'plain',
-      //   username: process.env.KAFKA_USERNAME,
-      //   password: process.env.KAFKA_PASSWORD,
-      // },
-    });
-  }
-
-  async connect(): Promise<void> {
-    if (this.isConnected) return;
-
-    try {
-      this.producer = this.kafka.producer({
-        maxInFlightRequests: 1,
-        idempotent: true,
-        transactionTimeout: 30000,
-      });
-
-      await this.producer.connect();
-      this.isConnected = true;
-      console.log('✅ Kafka producer connected from Vercel app');
-    } catch (error) {
-      console.warn('⚠️ Kafka connection failed, running in offline mode:', error);
-      // Graceful fallback - app continues working without Kafka
-    }
-  }
-
-  async disconnect(): Promise<void> {
-    if (this.producer) {
-      await this.producer.disconnect();
     }
     if (this.consumer) {
       await this.consumer.disconnect();
@@ -253,11 +225,11 @@ if (typeof window === 'undefined') {
 export default kafkaClient;
 
 // Utility functions for easy integration
-export const publishWasteDetection = (data: Parameters<typeof kafkaClient.publishWasteDetection>[0]) => 
+export const publishWasteDetection = (data: Parameters<typeof kafkaClient.publishWasteDetection>[0]) =>
   kafkaClient.publishWasteDetection(data);
 
-export const publishRouteOptimization = (data: Parameters<typeof kafkaClient.publishRouteOptimization>[0]) => 
+export const publishRouteOptimization = (data: Parameters<typeof kafkaClient.publishRouteOptimization>[0]) =>
   kafkaClient.publishRouteOptimization(data);
 
-export const publishAnalyticsEvent = (data: Parameters<typeof kafkaClient.publishAnalyticsEvent>[0]) => 
+export const publishAnalyticsEvent = (data: Parameters<typeof kafkaClient.publishAnalyticsEvent>[0]) =>
   kafkaClient.publishAnalyticsEvent(data);
