@@ -1,6 +1,4 @@
 const { Kafka } = require('kafkajs');
-const Redis = require('redis');
-const tf = require('@tensorflow/tfjs-node');
 const sharp = require('sharp');
 const axios = require('axios');
 
@@ -11,40 +9,34 @@ class AIWorkerService {
       clientId: 'ai-worker',
       brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
     });
-    
-    // Redis setup for caching
-    this.redis = Redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
-    });
-    
+
     this.consumer = this.kafka.consumer({ groupId: 'ai-processing-group' });
     this.producer = this.kafka.producer();
-    
+
     this.isReady = false;
   }
 
   async initialize() {
     try {
       // Connect to services
-      await this.redis.connect();
       await this.consumer.connect();
       await this.producer.connect();
-      
+
       // Subscribe to waste detection events
-      await this.consumer.subscribe({ 
+      await this.consumer.subscribe({
         topics: [
           'waste-detection-requests',
           'batch-ai-processing',
           'model-training-requests'
         ]
       });
-      
+
       console.log('🤖 AI Worker Service initialized successfully');
       this.isReady = true;
-      
+
       // Start processing messages
       this.startProcessing();
-      
+
     } catch (error) {
       console.error('❌ Failed to initialize AI Worker:', error);
     }
@@ -54,9 +46,9 @@ class AIWorkerService {
     await this.consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         const data = JSON.parse(message.value.toString());
-        
+
         console.log(`📦 Processing message from topic: ${topic}`, data);
-        
+
         switch (topic) {
           case 'waste-detection-requests':
             await this.processWasteDetection(data);
@@ -75,42 +67,23 @@ class AIWorkerService {
   async processWasteDetection(data) {
     try {
       const { imageUrl, userId, submissionId, requestId } = data;
-      
-      // Check cache first
-      const cacheKey = `detection:${Buffer.from(imageUrl).toString('base64')}`;
-      const cachedResult = await this.redis.get(cacheKey);
-      
-      if (cachedResult) {
-        console.log('🎯 Using cached AI detection result');
-        await this.sendResult('waste-detection-results', {
-          requestId,
-          submissionId,
-          userId,
-          result: JSON.parse(cachedResult),
-          cached: true
-        });
-        return;
-      }
 
       // Enhanced AI processing
       console.log('🔍 Processing new waste detection...');
-      
+
       // Download and preprocess image
       const processedImage = await this.preprocessImage(imageUrl);
-      
+
       // Run multiple AI models for better accuracy
       const results = await Promise.all([
         this.runCOCOSSD(processedImage),
         this.runWasteClassifier(processedImage),
         this.runRecyclabilityAnalysis(processedImage)
       ]);
-      
+
       // Combine results with confidence boosting
       const finalResult = this.combineResults(results, imageUrl);
-      
-      // Cache result for 24 hours
-      await this.redis.setEx(cacheKey, 86400, JSON.stringify(finalResult));
-      
+
       // Send result back to main app
       await this.sendResult('waste-detection-results', {
         requestId,
@@ -119,7 +92,7 @@ class AIWorkerService {
         result: finalResult,
         processingTime: Date.now() - data.timestamp
       });
-      
+
       // Update analytics
       await this.sendResult('analytics-events', {
         type: 'ai_detection',
@@ -128,10 +101,10 @@ class AIWorkerService {
         wasteType: finalResult.category,
         timestamp: new Date().toISOString()
       });
-      
+
     } catch (error) {
       console.error('❌ AI Processing failed:', error);
-      
+
       await this.sendResult('waste-detection-errors', {
         requestId: data.requestId,
         error: error.message,
@@ -142,10 +115,10 @@ class AIWorkerService {
 
   async preprocessImage(imageUrl) {
     console.log('🖼️ Preprocessing image...');
-    
+
     // Download image
     const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-    
+
     // Enhance image quality using Sharp
     const processedBuffer = await sharp(response.data)
       .resize(640, 640, { fit: 'inside' })
@@ -153,7 +126,7 @@ class AIWorkerService {
       .sharpen()
       .jpeg({ quality: 90 })
       .toBuffer();
-    
+
     return processedBuffer;
   }
 
@@ -191,7 +164,7 @@ class AIWorkerService {
   combineResults(results, imageUrl) {
     // Smart result combination with confidence boosting
     const [cocoResult, wasteResult, recycleResult] = results;
-    
+
     return {
       category: wasteResult.category,
       confidence: Math.max(cocoResult.objects[0]?.confidence || 0, wasteResult.confidence),
@@ -223,17 +196,17 @@ class AIWorkerService {
       'glass': 8,
       'paper': 6
     };
-    
+
     const multiplier = recyclable ? 1.5 : 1.0;
     return Math.floor((basePoints[category] || 5) * multiplier);
   }
 
   async processBatchImages(data) {
     console.log('📊 Processing batch of images...');
-    
+
     const { imageUrls, batchId } = data;
     const results = [];
-    
+
     for (const imageUrl of imageUrls) {
       try {
         const result = await this.processWasteDetection({
@@ -247,7 +220,7 @@ class AIWorkerService {
         results.push({ error: error.message, imageUrl });
       }
     }
-    
+
     await this.sendResult('batch-processing-results', {
       batchId,
       results,
@@ -261,7 +234,7 @@ class AIWorkerService {
 
   async processModelTraining(data) {
     console.log('🎯 Processing model training request...');
-    
+
     // Implement federated learning or model improvement
     await this.sendResult('model-training-progress', {
       trainingId: data.trainingId,
@@ -294,7 +267,6 @@ process.on('SIGINT', async () => {
   console.log('🛑 Shutting down AI Worker...');
   await aiWorker.consumer.disconnect();
   await aiWorker.producer.disconnect();
-  await aiWorker.redis.disconnect();
   process.exit(0);
 });
 

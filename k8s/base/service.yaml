@@ -10,38 +10,6 @@ spec:
   type: ClusterIP
   ports:
   - port: 3000
-    targetPort: 3000
-    protocol: TCP
-    name: http
-  selector:
-    app: ecoearn
-    component: frontend
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis-service
-  namespace: ecoearn
-  labels:
-    app: redis
-    component: cache
-spec:
-  type: ClusterIP
-  ports:
-  - port: 6379
-    targetPort: 6379
-    protocol: TCP
-    name: redis
-  selector:
-    app: redis
-    component: cache
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ecoearn-ingress
-  namespace: ecoearn
-  labels:
     app: ecoearn
   annotations:
     kubernetes.io/ingress.class: "nginx"

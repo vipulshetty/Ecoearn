@@ -17,8 +17,6 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - NEXT_PUBLIC_OPENWEATHER_API_KEY=${NEXT_PUBLIC_OPENWEATHER_API_KEY}
       - NEXT_PUBLIC_OPENROUTE_API_KEY=${NEXT_PUBLIC_OPENROUTE_API_KEY}
-    depends_on:
-      - redis
     networks:
       - ecoearn-network
     restart: unless-stopped
@@ -31,21 +29,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
-  # Redis for caching
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    networks:
-      - ecoearn-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
 
   # Nginx Load Balancer
   nginx:
@@ -66,9 +49,6 @@ services:
         limits:
           cpus: '0.5'
           memory: 256M
-
-volumes:
-  redis_data:
 
 networks:
   ecoearn-network:

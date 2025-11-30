@@ -31,7 +31,7 @@ data:
   GOOGLE_CLIENT_SECRET: ""           # Base64 encoded
   NEXT_PUBLIC_OPENWEATHER_API_KEY: "" # Base64 encoded
   NEXT_PUBLIC_OPENROUTE_API_KEY: ""   # Base64 encoded
-  REDIS_PASSWORD: ""                 # Base64 encoded
+
 ---
 # TLS Secret for HTTPS (will be managed by cert-manager)
 apiVersion: v1

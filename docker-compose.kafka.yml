@@ -47,17 +47,6 @@ services:
     networks:
       - ecoearn-kafka
 
-  # Redis for caching (enhances your current setup)
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - ecoearn-kafka
-
   # AI Processing Worker (FREE - processes waste detection)
   ai-worker:
     build:
@@ -65,10 +54,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - kafka
-      - redis
     environment:
       - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
       - WORKER_TYPE=ai-detection
     volumes:
       - ./models:/app/models
@@ -84,10 +71,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - kafka
-      - redis
     environment:
       - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
       - WORKER_TYPE=route-optimization
     networks:
       - ecoearn-kafka
@@ -101,10 +86,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - kafka
-      - redis
     environment:
       - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
     ports:
       - "3001:3000"
     networks:
@@ -128,7 +111,7 @@ services:
 volumes:
   zookeeper_data:
   kafka_data:
-  redis_data:
+
 
 networks:
   ecoearn-kafka:

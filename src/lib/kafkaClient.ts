@@ -18,6 +18,26 @@ class EcoearnKafkaClient {
       // Add authentication for production
       // sasl: {
       //   mechanism: 'plain',
+      // }
+    });
+  }
+
+  async connect(): Promise<void> {
+    try {
+      this.producer = this.kafka.producer();
+      await this.producer.connect();
+      this.isConnected = true;
+      console.log('✅ Kafka client connected');
+    } catch (error) {
+      console.error('❌ Failed to connect to Kafka:', error);
+      this.isConnected = false;
+      // Don't throw, just log, so app can start without Kafka
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.producer) {
+      await this.producer.disconnect();
     }
     if (this.consumer) {
       await this.consumer.disconnect();
