@@ -1,8 +1,9 @@
 # 🌱 EcoEarn - AI-Powered Waste Management Platform
 
-![EcoEarn Banner](https://via.placeholder.com/1200x400?text=EcoEarn+AI+Waste+Management)
+![EcoEarn Banner](https://img.youtube.com/vi/T0KYWJk9ChE/maxresdefault.jpg
+)
 
-[View Live Demo](ADD_LINK_HERE) | [Report Bug](https://github.com/vipulshetty/Ecoearn/issues) | [Request Feature](https://github.com/vipulshetty/Ecoearn/issues)
+[View Live Demo](https://youtu.be/T0KYWJk9ChE) | [Report Bug](https://github.com/vipulshetty/Ecoearn/issues) | [Request Feature](https://github.com/vipulshetty/Ecoearn/issues)
 
 ## 📋 Project Overview
 
