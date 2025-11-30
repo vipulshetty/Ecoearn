@@ -222,6 +222,20 @@ export default function Home() {
                   </motion.span>
                 </Link>
               </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="https://www.youtube.com/watch?v=T0KYWJk9ChE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-block border-2 border-white/30 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all backdrop-blur-sm hover:bg-white/10 hover:border-white/50"
+                >
+                  Watch Demo
+                  <span className="inline-block ml-2">▶</span>
+                </Link>
+              </motion.div>
             </motion.div>
           </div>
         </motion.div>
