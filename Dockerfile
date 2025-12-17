@@ -15,9 +15,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Download AI model before building
-RUN npm run download-model
-
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build

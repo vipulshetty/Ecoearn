@@ -30,9 +30,6 @@ jobs:
     - name: Run linting
       run: npm run lint
 
-    - name: Download AI models
-      run: npm run download-model
-
     - name: Build application
       run: npm run build
       env:
