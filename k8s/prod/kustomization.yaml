@@ -3,31 +3,19 @@ kind: Kustomization
 
 resources:
 - ../base
-- hpa.yaml
 
 namespace: ecoearn
 
 replicas:
 - name: ecoearn-app
   count: 3
-- name: redis
-  count: 1
 
 images:
 - name: ecoearn
   newTag: v1.0.0
 
-patchesStrategicMerge:
-- deployment-patch.yaml
-- service-patch.yaml
+patches:
+- path: deployment-patch.yaml
 
-configMapGenerator:
-- name: ecoearn-config-prod
-  literals:
-  - NODE_ENV=production
-  - NEXTAUTH_URL=https://ecoearn.yourdomain.com
-
-secretGenerator:
-- name: ecoearn-secrets-prod
-  files:
-  - secrets.env
+commonLabels:
+  environment: production

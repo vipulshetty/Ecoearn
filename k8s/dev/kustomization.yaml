@@ -11,25 +11,13 @@ namePrefix: dev-
 replicas:
 - name: ecoearn-app
   count: 1
-- name: redis
-  count: 1
 
 images:
 - name: ecoearn
   newTag: dev-latest
 
-patchesStrategicMerge:
-- deployment-patch.yaml
-- service-patch.yaml
-- configmap-patch.yaml
+patches:
+- path: deployment-patch.yaml
 
-configMapGenerator:
-- name: ecoearn-config-dev
-  literals:
-  - NODE_ENV=development
-  - NEXTAUTH_URL=https://dev.ecoearn.yourdomain.com
-
-secretGenerator:
-- name: ecoearn-secrets-dev
-  literals:
-  - REDIS_PASSWORD=dev-redis-password
+commonLabels:
+  environment: development
