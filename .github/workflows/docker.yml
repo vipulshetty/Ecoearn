@@ -7,6 +7,8 @@ on:
       - 'Dockerfile'
       - 'package*.json'
       - 'src/**'
+      - '.github/workflows/docker.yml'
+  workflow_dispatch:  # Allow manual trigger
   schedule:
     # Run weekly security scans
     - cron: '0 2 * * 1'
