@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package*.json ./
-RUN npm ci
+RUN npm install --production=false
 
 # Stage 2: Builder
 FROM node:18-alpine AS builder
