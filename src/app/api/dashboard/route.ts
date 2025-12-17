@@ -4,84 +4,34 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get recent submissions
-    const { data: recentSubmissions, error: submissionsError } = await supabase
-      .from('waste_submissions')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(6);
-
-    if (submissionsError) {
-      throw new Error('Failed to fetch recent submissions');
-    }
-
-    // Get total points
-    const { data: pointsData, error: pointsError } = await supabase
-      .from('waste_submissions')
-      .select('points')
-      .eq('user_id', session.user.id);
-
-    if (pointsError) {
-      throw new Error('Failed to fetch total points');
-    }
-
-    const totalPoints = pointsData.reduce((sum, submission) => sum + submission.points, 0);
-
-    // Get waste distribution
-    const { data: wasteData, error: wasteError } = await supabase
-      .from('waste_submissions')
-      .select('type')
-      .eq('user_id', session.user.id);
-
-    if (wasteError) {
-      throw new Error('Failed to fetch waste distribution');
-    }
-
-    const wasteByType: Record<string, number> = {};
-    wasteData.forEach(submission => {
-      wasteByType[submission.type] = (wasteByType[submission.type] || 0) + 1;
-    });
-
-    // Get points history (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const { data: historyData, error: historyError } = await supabase
-      .from('waste_submissions')
-      .select('points, created_at')
-      .eq('user_id', session.user.id)
-      .gte('created_at', sevenDaysAgo.toISOString())
-      .order('created_at', { ascending: true });
-
-    if (historyError) {
-      throw new Error('Failed to fetch points history');
-    }
-
-    // Group points by date
-    const pointsHistory = historyData.reduce((acc: any[], submission) => {
-      const date = new Date(submission.created_at).toLocaleDateString();
-      const existingEntry = acc.find(entry => entry.date === date);
-      
-      if (existingEntry) {
-        existingEntry.points += submission.points;
-      } else {
-        acc.push({ date, points: submission.points });
-      }
-      
-      return acc;
-    }, []);
+    // Return demo dashboard data (auth removed for DevOps showcase)
+    const pointsHistory = [
+      { date: new Date(Date.now() - 6 * 86400000).toLocaleDateString(), points: 10 },
+      { date: new Date(Date.now() - 5 * 86400000).toLocaleDateString(), points: 15 },
+      { date: new Date(Date.now() - 4 * 86400000).toLocaleDateString(), points: 12 },
+      { date: new Date(Date.now() - 3 * 86400000).toLocaleDateString(), points: 20 },
+      { date: new Date(Date.now() - 2 * 86400000).toLocaleDateString(), points: 18 },
+      { date: new Date(Date.now() - 1 * 86400000).toLocaleDateString(), points: 25 },
+      { date: new Date().toLocaleDateString(), points: 22 },
+    ];
 
     return NextResponse.json({
-      totalPoints,
-      totalSubmissions: wasteData.length,
-      wasteByType,
-      recentSubmissions,
+      totalPoints: 122,
+      totalSubmissions: 15,
+      wasteByType: {
+        plastic: 5,
+        paper: 4,
+        glass: 3,
+        metal: 1,
+        organic: 2,
+        electronic: 0,
+        other: 0
+      },
+      recentSubmissions: [
+        { id: '1', type: 'plastic', weight: 2.5, points: 25, created_at: new Date().toISOString() },
+        { id: '2', type: 'paper', weight: 1.8, points: 18, created_at: new Date(Date.now() - 86400000).toISOString() },
+        { id: '3', type: 'glass', weight: 3.2, points: 32, created_at: new Date(Date.now() - 172800000).toISOString() },
+      ],
       pointsHistory
     });
   } catch (error: any) {

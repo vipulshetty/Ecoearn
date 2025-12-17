@@ -77,28 +77,8 @@ const dummyUsers = [
 
 export async function GET(request: NextRequest) {
   try {
-    // Get current session
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Add current user to the leaderboard
-    const currentUserEntry = {
-      id: session.user.id,
-      name: session.user.name || 'You',
-      image: session.user.image || '/default-avatar.png',
-      totalPoints: 600, // Random position in middle of leaderboard
-      wasteCount: 12,
-    };
-
-    // Insert current user into dummy data
-    const allUsers = [...dummyUsers];
-    allUsers.splice(5, 0, currentUserEntry); // Insert current user at position 6
-
-    // Sort by points (in case current user position changes order)
-    const leaderboard = allUsers.sort((a, b) => b.totalPoints - a.totalPoints);
-
+    // Return demo leaderboard data (auth removed for DevOps showcase)
+    const leaderboard = dummyUsers.sort((a, b) => b.totalPoints - a.totalPoints);
     return NextResponse.json(leaderboard);
   } catch (error: any) {
     console.error('Leaderboard API Error:', error);

@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 // import dbConnect from '@/lib/mongodb';
 // import WasteSubmission from '@/models/WasteSubmission';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // TODO: Implement with Supabase

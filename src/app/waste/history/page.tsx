@@ -25,8 +25,9 @@ export default function WasteHistoryPage() {
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
+        // Demo mode - use mock user ID
         const response = await axios.get('/api/waste', {
-          params: { userId: session?.user?.id }
+          params: { userId: 'demo-user' }
         });
         setSubmissions(response.data);
       } catch (err: any) {
@@ -36,18 +37,8 @@ export default function WasteHistoryPage() {
       }
     };
 
-    if (session?.user?.id) {
-      fetchSubmissions();
-    }
-  }, [session?.user?.id]);
-
-  if (!session) {
-    return (
-      <div className="text-center p-4">
-        Please sign in to view your submissions
-      </div>
-    );
-  }
+    fetchSubmissions();
+  }, []);
 
   if (loading) {
     return (
