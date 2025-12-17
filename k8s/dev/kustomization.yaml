@@ -12,5 +12,5 @@ images:
 - name: ecoearn
   newTag: dev-latest
 
-patchesStrategicMerge:
-- deployment-patch.yaml
+patches:
+- path: deployment-patch.yaml

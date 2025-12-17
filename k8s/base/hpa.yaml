@@ -2,7 +2,6 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: ecoearn-hpa
-  namespace: ecoearn
   labels:
     app: ecoearn
     component: frontend
