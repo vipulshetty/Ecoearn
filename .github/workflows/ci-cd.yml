@@ -84,11 +84,11 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
-  # Deploy to Development
+  # Deploy to Development (requires KUBECONFIG_DEV secret)
   deploy-dev:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' && vars.ENABLE_K8S_DEPLOY == 'true'
     environment: development
     steps:
     - name: Checkout code
@@ -118,11 +118,33 @@ jobs:
         kustomize build k8s/dev | kubectl apply -f -
         kubectl rollout status deployment/dev-ecoearn-app -n ecoearn-dev --timeout=300s
 
-  # Deploy to Production
-  deploy-prod:
+  # Validate Kubernetes Manifests
+  validate-k8s:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Kustomize
+      uses: imranismail/setup-kustomize@v2
+
+    - name: Validate kustomize build (prod)
+      run: |
+        kustomize build k8s/prod > /dev/null
+        echo "✅ Kustomize build successful for production"
+
+    - name: Validate kustomize build (dev)
+      run: |
+        kustomize build k8s/dev > /dev/null
+        echo "✅ Kustomize build successful for development"
+
+  # Deploy to Production (requires KUBECONFIG_PROD secret)
+  deploy-prod:
+    needs: validate-k8s
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_K8S_DEPLOY == 'true'
     environment: production
     steps:
     - name: Checkout code
