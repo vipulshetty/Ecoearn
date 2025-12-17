@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WasteAnalysisResult, WasteCategory } from '@/lib/waste-detector';
+
+type WasteCategory = 'plastic' | 'paper' | 'glass' | 'metal' | 'organic' | 'electronic' | 'other';
+
+interface WasteDetection {
+  className: string;
+  wasteCategory: WasteCategory;
+  confidence: number;
+  bbox: { x: number; y: number; width: number; height: number };
+}
+
+interface WasteAnalysisResult {
+  detections: WasteDetection[];
+  primaryWasteType: WasteCategory;
+  confidence: number;
+  recyclable: boolean;
+  points: number;
+}
 
 export async function POST(request: NextRequest) {
   try {
