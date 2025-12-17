@@ -32,13 +32,13 @@ interface AutoRouteDisplayProps {
   onRouteCalculated?: (route: ShortestPathResult) => void;
 }
 
-export default function AutoRouteDisplay({ 
-  traderLocation, 
-  userLocation, 
-  onRouteCalculated 
+export default function AutoRouteDisplay({
+  traderLocation,
+  userLocation,
+  onRouteCalculated
 }: AutoRouteDisplayProps) {
   const [route, setRoute] = useState<ShortestPathResult | null>(null);
-  const [isCalculating, setIsCalculating] = useState(true);
+  const [isCalculating, setIsCalculating] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [hasMapError, setHasMapError] = useState(false);
 
@@ -47,21 +47,17 @@ export default function AutoRouteDisplay({
     if (!traderLocation.lat || !traderLocation.lng || !userLocation.lat || !userLocation.lng) {
       console.error('❌ Invalid location coordinates provided');
       setHasMapError(true);
-      setIsCalculating(false);
-      return;
     }
-    
-    calculateRoute();
   }, [traderLocation, userLocation]);
 
   const calculateRoute = async () => {
     setIsCalculating(true);
-    
+
     try {
       console.log('🗺️ Starting REAL ROAD route calculation...');
       console.log('Trader:', traderLocation);
       console.log('User:', userLocation);
-      
+
       // Calculate using real roads via OpenRouteService API
       const calculatedRoute = await calculateOptimalRoute(
         traderLocation.lat,
@@ -69,7 +65,7 @@ export default function AutoRouteDisplay({
         userLocation.lat,
         userLocation.lng
       );
-      
+
       console.log('✅ REAL ROAD route calculated successfully:');
       console.log(`🛣️ Uses actual streets and highways`);
       console.log(`📍 Path length: ${calculatedRoute.path.length} nodes`);
@@ -77,12 +73,12 @@ export default function AutoRouteDisplay({
       console.log(`⏱️ Estimated time: ${calculatedRoute.estimatedTime}min`);
       console.log(`🗺️ Route coordinates: ${calculatedRoute.route.coordinates.length} GPS points`);
       console.log('🛣️ Route follows real roads, not artificial paths!');
-      
+
       setRoute(calculatedRoute);
       onRouteCalculated?.(calculatedRoute);
     } catch (error) {
       console.error('❌ Real road route calculation failed:', error);
-      
+
       // Provide fallback route for better UX
       const fallbackRoute = {
         path: [
@@ -98,9 +94,10 @@ export default function AutoRouteDisplay({
             'Head towards pickup location',
             'Arrive at destination'
           ]
-        }
+        },
+        algorithm: 'dijkstra' as const
       };
-      
+
       console.log('🔄 Using fallback route:', fallbackRoute);
       setRoute(fallbackRoute);
       onRouteCalculated?.(fallbackRoute);
@@ -118,25 +115,6 @@ export default function AutoRouteDisplay({
     return [0, 0] as [number, number]; // fallback
   }) || [];
 
-  // Debug route coordinates
-  if (route) {
-    console.log('🗺️ Route debug info:');
-    console.log('📍 OSPF coordinates (already [lat,lng]):', route.route.coordinates);
-    console.log('📍 Leaflet coordinates (ready to use):', routeCoordinates);
-    console.log('📊 Total coordinate points:', routeCoordinates.length);
-    console.log('🛣️ Path nodes:', route.path.map(n => `${n.name || n.id} (${n.lat.toFixed(4)}, ${n.lng.toFixed(4)})`).join(' → '));
-    
-    // Validate coordinates are within reasonable bounds
-    const validCoords = routeCoordinates.filter(coord => 
-      coord[0] >= -90 && coord[0] <= 90 && coord[1] >= -180 && coord[1] <= 180
-    );
-    console.log('✅ Valid coordinates:', validCoords.length, 'out of', routeCoordinates.length);
-    
-    // Log first and last few coordinates for verification
-    console.log('🔍 First coordinates:', routeCoordinates.slice(0, 3));
-    console.log('🔍 Last coordinates:', routeCoordinates.slice(-3));
-  }
-
   return (
     <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-lg">
       {/* Route Info Header */}
@@ -149,7 +127,7 @@ export default function AutoRouteDisplay({
               <p className="text-blue-100 text-sm">Collector Location</p>
             </div>
           </div>
-          
+
           {route && (
             <div className="text-right">
               <div className="flex items-center space-x-4 text-sm">
@@ -178,27 +156,51 @@ export default function AutoRouteDisplay({
               <p className="text-gray-400 text-xs mt-1">Please check location coordinates</p>
             </div>
           </div>
-        ) : isCalculating ? (
-          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-600 text-sm">Finding optimal route on real roads...</p>
-              <p className="text-gray-400 text-xs mt-1">🌐 Using OpenRouteService API for actual street routing</p>
-            </div>
-          </div>
-        ) : null}
+        ) : (
+          <>
+            {/* Map is always rendered if no error */}
+            <DynamicMap
+              traderLocation={traderLocation}
+              userLocation={userLocation}
+              route={route}
+              routeCoordinates={routeCoordinates}
+              onMapReady={() => {
+                console.log('🗺️ Map is ready');
+                setMapReady(true);
+              }}
+            />
 
-        {!isCalculating && !hasMapError && (
-          <DynamicMap
-            traderLocation={traderLocation}
-            userLocation={userLocation}
-            route={route}
-            routeCoordinates={routeCoordinates}
-            onMapReady={() => {
-              console.log('🗺️ Map is ready');
-              setMapReady(true);
-            }}
-          />
+            {/* Loading Overlay */}
+            {isCalculating && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-800 font-medium">Finding optimal route...</p>
+                  <p className="text-gray-500 text-xs mt-1">Using OpenRouteService API</p>
+                </div>
+              </div>
+            )}
+
+            {/* Optimize Button Overlay (Only if no route and not calculating) */}
+            {!route && !isCalculating && (
+              <div className="absolute inset-0 flex items-end justify-center pb-8 z-[1000] pointer-events-none">
+                <div className="bg-white/90 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-gray-100 mb-8 pointer-events-auto max-w-sm text-center mx-4">
+                  <div className="text-4xl mb-3">🚛</div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Ready to Route</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Calculate the most efficient path between {traderLocation.name} and your location.
+                  </p>
+                  <button
+                    onClick={calculateRoute}
+                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-blue-700 transition-all transform hover:scale-105 flex items-center justify-center space-x-2 pointer-events-auto"
+                  >
+                    <TruckIcon className="h-5 w-5" />
+                    <span>Optimize Route</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -221,13 +223,12 @@ export default function AutoRouteDisplay({
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {route.route.instructions.map((instruction, index) => (
               <div key={index} className="flex items-start space-x-2 text-sm">
-                <span className={`rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold ${
-                  index === 0 
-                    ? 'bg-green-500 text-white' 
+                <span className={`rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold ${index === 0
+                    ? 'bg-green-500 text-white'
                     : index === route.route.instructions.length - 1
-                    ? 'bg-red-500 text-white'
-                    : 'bg-blue-500 text-white'
-                }`}>
+                      ? 'bg-red-500 text-white'
+                      : 'bg-blue-500 text-white'
+                  }`}>
                   {index + 1}
                 </span>
                 <span className="text-gray-700">{instruction}</span>

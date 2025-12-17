@@ -9,7 +9,6 @@ import {
   SparklesIcon,
   GiftIcon
 } from '@heroicons/react/24/outline';
-import { blockchainRewards } from '@/services/blockchainRewards';
 
 interface Reward {
   id: string;
@@ -20,6 +19,45 @@ interface Reward {
   specificType?: string;
   icon: any;
 }
+
+const demoRewards: Reward[] = [
+  {
+    id: 'crypto-btc-testnet',
+    title: 'Testnet BTC Reward',
+    description: 'Demo crypto reward (no real blockchain).',
+    pointsCost: 500,
+    type: 'crypto',
+    specificType: 'testnet-btc',
+    icon: CurrencyDollarIcon,
+  },
+  {
+    id: 'crypto-eth-testnet',
+    title: 'Testnet ETH Reward',
+    description: 'Demo crypto reward (no real blockchain).',
+    pointsCost: 750,
+    type: 'crypto',
+    specificType: 'testnet-eth',
+    icon: CurrencyDollarIcon,
+  },
+  {
+    id: 'nft-eco-achiever',
+    title: 'Eco Achiever NFT (Demo)',
+    description: 'Demo NFT reward (no minting).',
+    pointsCost: 1200,
+    type: 'nft',
+    specificType: 'demo-nft',
+    icon: PhotoIcon,
+  },
+  {
+    id: 'voucher-10-off',
+    title: '10% Partner Voucher (Demo)',
+    description: 'Demo voucher reward.',
+    pointsCost: 300,
+    type: 'voucher',
+    specificType: 'demo-voucher',
+    icon: TicketIcon,
+  },
+];
 
 export default function Rewards() {
   const [points, setPoints] = useState(0); // Start with 0, load from API
@@ -48,42 +86,7 @@ export default function Rewards() {
   const loadRewards = async () => {
     try {
       setLoading(true);
-      const catalog = blockchainRewards.getRewardsCatalog();
-
-      const allRewards: Reward[] = [
-        // Crypto rewards
-        ...catalog.crypto.map((item: any) => ({
-          id: `crypto-${item.type}`,
-          title: item.description,
-          description: `Convert points to ${item.type.replace('testnet-', '').toUpperCase()}`,
-          pointsCost: item.pointsRequired,
-          type: 'crypto' as const,
-          specificType: item.type,
-          icon: CurrencyDollarIcon
-        })),
-        // NFT rewards
-        ...catalog.nfts.map((item: any) => ({
-          id: `nft-${item.type}`,
-          title: item.description,
-          description: 'Mint exclusive eco-achievement NFT',
-          pointsCost: item.pointsRequired,
-          type: 'nft' as const,
-          specificType: item.type,
-          icon: PhotoIcon
-        })),
-        // Voucher rewards
-        ...catalog.vouchers.map((item: any) => ({
-          id: `voucher-${item.type}`,
-          title: item.description,
-          description: 'Digital voucher with QR code',
-          pointsCost: item.pointsRequired,
-          type: 'voucher' as const,
-          specificType: item.type,
-          icon: TicketIcon
-        }))
-      ];
-
-      setRewards(allRewards);
+      setRewards(demoRewards);
     } catch (error) {
       console.error('Error loading rewards:', error);
     } finally {
@@ -100,21 +103,26 @@ export default function Rewards() {
     try {
       setRedeeming(reward.id);
 
-      // Use the blockchain rewards service
-      const transaction = await blockchainRewards.distributeReward(
-        userEmail,
-        reward.pointsCost,
-        reward.type,
-        reward.specificType
-      );
+      // Demo redemption: subtract points via points API
+      const response = await fetch('/api/users/points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEmail,
+          pointsChange: reward.pointsCost,
+          operation: 'subtract',
+          reason: `Redeemed ${reward.title}`,
+        }),
+      });
 
-      console.log('Reward redeemed:', transaction);
+      if (!response.ok) {
+        throw new Error('Failed to redeem reward');
+      }
 
       // Update points by reloading from API
       await loadUserPoints();
 
-      // Show success message
-      alert(`Successfully redeemed ${reward.title}! Check your wallet for the reward.`);
+      alert(`Successfully redeemed ${reward.title}!`);
 
     } catch (error) {
       console.error('Error redeeming reward:', error);
@@ -126,7 +134,7 @@ export default function Rewards() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center pt-20">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
       </div>
     );
@@ -142,10 +150,10 @@ export default function Rewards() {
           className="text-center mb-12"
         >
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            🎁 Blockchain Rewards Store
+            🎁 Rewards Store (Demo)
           </h1>
           <p className="text-xl text-gray-600 mb-6">
-            Convert your eco-points to cryptocurrency, NFTs, and digital vouchers
+            Redeem eco-points for demo rewards
           </p>
           <div className="inline-flex items-center space-x-2 bg-white px-6 py-3 rounded-full shadow-lg">
             <SparklesIcon className="h-6 w-6 text-green-500" />

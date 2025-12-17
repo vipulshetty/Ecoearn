@@ -1,0 +1,73 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'ecoearn-prod'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # EcoEarn Main Application
+  - job_name: 'ecoearn-app'
+    static_configs:
+      - targets: ['ecoearn-app:3000']
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+
+  # AI Worker Service
+  - job_name: 'ai-worker'
+    static_configs:
+      - targets: ['ai-worker:3002']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Route Optimization Worker
+  - job_name: 'route-worker'
+    static_configs:
+      - targets: ['route-worker:3003']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Analytics Service
+  - job_name: 'analytics'
+    static_configs:
+      - targets: ['analytics:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Notification Service
+  - job_name: 'notifications'
+    static_configs:
+      - targets: ['notifications:3004']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Kafka Exporter
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Postgres Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

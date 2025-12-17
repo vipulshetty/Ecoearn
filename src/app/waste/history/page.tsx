@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import axios from 'axios';
 
 interface WasteSubmission {
@@ -19,7 +18,6 @@ interface WasteSubmission {
 }
 
 export default function WasteHistoryPage() {
-  const { data: session } = useSession();
   const [submissions, setSubmissions] = useState<WasteSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

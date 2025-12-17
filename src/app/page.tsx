@@ -111,9 +111,10 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed"
           >
-            Join the global movement. Recycle smarter, earn rewards, and build a sustainable future with AI-powered tracking.
+            <span className="text-blue-400 font-semibold">Cloud-Native Platform</span> demonstrating production-grade DevOps: 
+            Kubernetes orchestration, event-driven microservices, real-time monitoring, and CI/CD automation
           </motion.p>
 
           <motion.div
@@ -123,23 +124,37 @@ export default function Home() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Link
-              href="/waste/submit"
-              className="px-8 py-4 rounded-full bg-green-500 hover:bg-green-600 text-white font-bold text-lg transition-all transform hover:scale-105 shadow-lg shadow-green-500/25"
+              href="/devops"
+              className="px-10 py-5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold text-xl transition-all transform hover:scale-105 shadow-2xl shadow-blue-500/50 flex items-center gap-3"
             >
-              Start Earning
+              <span>⚙️</span>
+              <span>View DevOps Dashboard</span>
             </Link>
             <Link
               href="https://www.youtube.com/watch?v=T0KYWJk9ChE"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-bold text-lg transition-all flex items-center gap-2 group"
+              className="px-8 py-5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border-2 border-white/30 text-white font-bold text-lg transition-all flex items-center gap-2 group"
             >
-              <span>Watch Demo</span>
+              <span>📹 Watch Demo</span>
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
+          </motion.div>
+
+          {/* Quick Tech Stack Pills */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="mt-12 flex flex-wrap justify-center gap-3"
+          >
+            {['Docker', 'Kubernetes', 'Kafka', 'Prometheus', 'Grafana', 'GitHub Actions', 'Next.js', 'TypeScript'].map((tech) => (
+              <span key={tech} className="px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full text-sm font-medium text-slate-300">
+                {tech}
+              </span>
+            ))}
           </motion.div>
         </div>
       </section>

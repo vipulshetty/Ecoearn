@@ -38,11 +38,11 @@ export default function RoutingPage() {
 
   useEffect(() => {
     loadRouteStats();
-    
+
     // Check if we have trader selection data from analyze page
     const urlParams = new URLSearchParams(window.location.search);
     const routeData = urlParams.get('data');
-    
+
     if (routeData) {
       try {
         const data = JSON.parse(routeData);
@@ -60,7 +60,7 @@ export default function RoutingPage() {
   const loadSpecificRouteData = async (routeData: any) => {
     try {
       setDataLoading(true);
-      
+
       // Create pickup data based on selected trader and user location
       const specificPickupData = {
         pickupLocations: routeData.locations.map((loc: any, index: number) => ({
@@ -88,7 +88,7 @@ export default function RoutingPage() {
         },
         selectedTrader: routeData.selectedTrader
       };
-      
+
       setPickupData(specificPickupData);
       console.log(`🎯 Loaded specific route for trader: ${routeData.selectedTrader.name}`);
     } catch (error) {
@@ -171,7 +171,7 @@ export default function RoutingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white pt-24">
+      <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <motion.div
@@ -181,9 +181,9 @@ export default function RoutingPage() {
             >
               {selectedTraderData ? (
                 <>
-                  <h1 className="text-4xl font-bold mb-4">🎯 Automatic Route to {selectedTraderData.selectedTrader.name}</h1>
+                  <h1 className="text-4xl font-bold mb-4">🎯 Route to {selectedTraderData.selectedTrader.name}</h1>
                   <p className="text-orange-100 text-lg max-w-3xl mx-auto">
-                    <strong>OSPF Algorithm</strong> calculated the optimal collection route automatically - no manual optimization needed!
+                    <strong>OSPF Algorithm</strong> calculates the optimal collection route on demand - click optimize to see the path!
                   </p>
                   <div className="mt-4 inline-flex items-center space-x-4 text-sm">
                     <span className="bg-white/20 px-3 py-1 rounded-full flex items-center">
@@ -196,7 +196,7 @@ export default function RoutingPage() {
                       ⭐ Rating: {selectedTraderData.selectedTrader.rating}
                     </span>
                     <span className="bg-green-400/30 px-3 py-1 rounded-full flex items-center text-green-100">
-                      🤖 Auto-calculated
+                      🤖 AI Optimized
                     </span>
                   </div>
                 </>
@@ -204,7 +204,7 @@ export default function RoutingPage() {
                 <>
                   <h1 className="text-4xl font-bold mb-4">🚛 OSPF Route Optimizer</h1>
                   <p className="text-orange-100 text-lg max-w-2xl mx-auto">
-                    Advanced shortest path algorithm for automatic route calculation - just like Uber and Ola!
+                    Advanced shortest path algorithm for route calculation - just like Uber and Ola!
                   </p>
                 </>
               )}
@@ -312,12 +312,12 @@ export default function RoutingPage() {
             className="bg-white rounded-xl border p-6 mb-8"
           >
             <h2 className="text-xl font-semibold mb-4">
-              {selectedTraderData ? 
-                `🎯 Selected Route: OSPF Auto-Calculated → ${selectedTraderData.selectedTrader.name}` : 
+              {selectedTraderData ?
+                `🎯 Selected Route: OSPF Auto-Calculated → ${selectedTraderData.selectedTrader.name}` :
                 '🗺️ OSPF Route Network'
               }
             </h2>
-            
+
             {selectedTraderData && (
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                 <h3 className="font-medium text-blue-800 mb-2">Waste Analysis Result</h3>
@@ -341,7 +341,7 @@ export default function RoutingPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">
@@ -390,10 +390,10 @@ export default function RoutingPage() {
             <h2 className="text-2xl font-bold mb-4 flex items-center">
               🗺️ Optimal Route Display
               <span className="ml-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                Auto-calculated
+                AI Powered
               </span>
             </h2>
-            
+
             {selectedTraderData && pickupData ? (
               <>
                 {console.log('🐛 Debug - Route Display Data:', { selectedTraderData, pickupData })}
@@ -422,14 +422,14 @@ export default function RoutingPage() {
                   Submit waste from the waste submission page to automatically calculate the optimal route to traders.
                 </p>
                 <div className="space-x-4">
-                  <a 
-                    href="/waste/submit" 
+                  <a
+                    href="/waste/submit"
                     className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     📤 Submit Waste
                   </a>
-                  <a 
-                    href="/test-route" 
+                  <a
+                    href="/test-route"
                     className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
                     🧪 Test Route

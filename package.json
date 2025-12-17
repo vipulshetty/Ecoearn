@@ -7,7 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "download-model": "node scripts/download-yolo-model.js"
+    "devops:start": "docker-compose -f docker-compose.kafka.yml up -d",
+    "devops:stop": "docker-compose -f docker-compose.kafka.yml down",
+    "devops:logs": "docker-compose -f docker-compose.kafka.yml logs -f",
+    "devops:status": "docker-compose -f docker-compose.kafka.yml ps",
+    "test:load": "k6 run tests/load/basic-load-test.js",
+    "test:stress": "k6 run tests/load/hpa-stress-test.js",
+    "k8s:apply": "kubectl apply -k k8s/dev/",
+    "k8s:delete": "kubectl delete -k k8s/dev/",
+    "k8s:status": "kubectl get all -n ecoearn",
+    "k8s:hpa": "kubectl get hpa -n ecoearn"
   },
   "dependencies": {
     "@heroicons/react": "2.0.18",

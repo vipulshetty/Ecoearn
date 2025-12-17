@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 // Try to import Supabase, but handle gracefully if it fails
 let supabase: any = null;
+let supabaseDisabledDueToError = false;
 try {
   const { createClient } = require('@supabase/supabase-js');
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
@@ -20,7 +21,7 @@ export async function GET() {
     let aiDetections: any[] = [];
 
     // Try to fetch from Supabase if available
-    if (supabase) {
+    if (supabase && !supabaseDisabledDueToError) {
       try {
         console.log('🔍 Attempting to fetch from Supabase...');
 
@@ -44,7 +45,13 @@ export async function GET() {
           .limit(20);
 
         if (submissionsError) {
-          console.warn('Supabase submissions error:', submissionsError);
+          const msg = typeof (submissionsError as any)?.message === 'string' ? (submissionsError as any).message : '';
+          if (msg.includes('fetch failed')) {
+            supabaseDisabledDueToError = true;
+            console.warn('Supabase unreachable (fetch failed). Using fallback data.');
+          } else {
+            console.warn('Supabase submissions error:', submissionsError);
+          }
         } else {
           submissions = submissionsData || [];
           console.log(`✅ Found ${submissions.length} waste submissions`);
@@ -54,8 +61,16 @@ export async function GET() {
         // In the future, you can create this table or use existing waste_submissions
         console.log('ℹ️ AI detections table not available, using only waste submissions');
 
-      } catch (dbError) {
-        console.warn('Database connection failed, using fallback data:', dbError);
+      } catch (dbError: any) {
+        const msg = typeof dbError?.message === 'string' ? dbError.message : '';
+        // When Supabase is configured but unreachable, undici throws "TypeError: fetch failed".
+        // Disable Supabase for this process so subsequent requests don't spam logs.
+        if (msg.includes('fetch failed')) {
+          supabaseDisabledDueToError = true;
+          console.warn('Supabase unreachable (fetch failed). Using fallback data.');
+        } else {
+          console.warn('Database connection failed, using fallback data:', dbError);
+        }
       }
     } else {
       console.log('📝 Supabase not configured, using sample data for demo');

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+// Demo fallback store (used when Supabase is unreachable)
+const demoPointsStore = new Map<string, number>();
+
+function isFetchFailedError(err: unknown): boolean {
+  const msg = typeof (err as any)?.message === 'string' ? (err as any).message : '';
+  return msg.includes('fetch failed');
+}
+
 // GET user points
 export async function GET(request: NextRequest) {
   try {
@@ -14,34 +22,58 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('points, email, name')
-      .eq('email', userEmail)
-      .single();
+    try {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('points, email, name')
+        .eq('email', userEmail)
+        .single();
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Failed to fetch user points:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch user data' },
-        { status: 500 }
-      );
-    }
+      if (error && error.code !== 'PGRST116') {
+        // If Supabase is unreachable, fall back to demo store
+        if ((error as any)?.message?.includes?.('fetch failed')) {
+          const points = demoPointsStore.get(userEmail) ?? 0;
+          return NextResponse.json({
+            points,
+            email: userEmail,
+            name: userEmail.split('@')[0],
+            source: 'demo',
+          });
+        }
 
-    if (!user) {
-      // User doesn't exist, return 0 points
+        console.error('Failed to fetch user points:', error);
+        return NextResponse.json(
+          { error: 'Failed to fetch user data' },
+          { status: 500 }
+        );
+      }
+
+      if (!user) {
+        // User doesn't exist, return 0 points
+        return NextResponse.json({
+          points: 0,
+          email: userEmail,
+          name: userEmail.split('@')[0]
+        });
+      }
+
       return NextResponse.json({
-        points: 0,
-        email: userEmail,
-        name: userEmail.split('@')[0]
+        points: user.points || 0,
+        email: user.email,
+        name: user.name
       });
+    } catch (supabaseError) {
+      if (isFetchFailedError(supabaseError)) {
+        const points = demoPointsStore.get(userEmail) ?? 0;
+        return NextResponse.json({
+          points,
+          email: userEmail,
+          name: userEmail.split('@')[0],
+          source: 'demo',
+        });
+      }
+      throw supabaseError;
     }
-
-    return NextResponse.json({
-      points: user.points || 0,
-      email: user.email,
-      name: user.name
-    });
 
   } catch (error) {
     console.error('Error in GET /api/users/points:', error);
@@ -64,81 +96,71 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (operation !== 'add' && operation !== 'subtract') {
+      return NextResponse.json(
+        { error: 'Invalid operation. Must be "add" or "subtract"' },
+        { status: 400 }
+      );
+    }
 
-    // Get current user data
-    const { data: currentUser, error: fetchError } = await supabase
-      .from('users')
-      .select('points')
-      .eq('email', userEmail)
-      .single();
+    // Default to demo store; try Supabase when available.
+    let currentPoints = demoPointsStore.get(userEmail) ?? 0;
+    let usedDemo = true;
 
-    let newPoints = 0;
-    
-    if (fetchError && fetchError.code === 'PGRST116') {
-      // User doesn't exist, create them
-      newPoints = operation === 'add' ? pointsChange : 0;
-      
-      const { data: newUser, error: createError } = await supabase
+    try {
+      const { data: currentUser, error: fetchError } = await supabase
         .from('users')
-        .insert({
-          email: userEmail,
-          name: userEmail.split('@')[0],
-          points: newPoints
-        })
-        .select()
+        .select('points')
+        .eq('email', userEmail)
         .single();
 
-      if (createError) {
-        console.error('Failed to create user:', createError);
-        return NextResponse.json(
-          { error: 'Failed to create user' },
-          { status: 500 }
-        );
+      if (!fetchError && currentUser) {
+        currentPoints = currentUser.points || 0;
+        usedDemo = false;
       }
-
-      return NextResponse.json({
-        success: true,
-        points: newPoints,
-        previousPoints: 0,
-        change: pointsChange,
-        operation,
-        reason
-      });
-
-    } else if (fetchError) {
-      console.error('Failed to fetch user:', fetchError);
-      return NextResponse.json(
-        { error: 'Failed to fetch user data' },
-        { status: 500 }
-      );
+    } catch (supabaseError) {
+      if (!isFetchFailedError(supabaseError)) {
+        throw supabaseError;
+      }
     }
 
-    // Calculate new points
-    const currentPoints = currentUser.points || 0;
-    if (operation === 'add') {
-      newPoints = currentPoints + pointsChange;
-    } else if (operation === 'subtract') {
-      newPoints = Math.max(0, currentPoints - pointsChange); // Don't allow negative points
+    const newPoints = operation === 'add'
+      ? currentPoints + pointsChange
+      : Math.max(0, currentPoints - pointsChange);
+
+    // Always persist to demo store so the UI works without a DB.
+    demoPointsStore.set(userEmail, newPoints);
+
+    // Best-effort persist to Supabase; ignore unreachable errors.
+    try {
+      const { error: upsertError } = await supabase
+        .from('users')
+        .upsert(
+          {
+            email: userEmail,
+            name: userEmail.split('@')[0],
+            points: newPoints,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'email' }
+        );
+
+      if (upsertError) {
+        // If Supabase is unreachable, don't fail the demo.
+        if ((upsertError as any)?.message?.includes?.('fetch failed')) {
+          usedDemo = true;
+        } else {
+          console.error('Failed to persist user points to Supabase:', upsertError);
+        }
+      } else {
+        usedDemo = false;
+      }
+    } catch (supabaseError) {
+      if (!isFetchFailedError(supabaseError)) {
+        throw supabaseError;
+      }
+      usedDemo = true;
     }
-
-    // Update user points
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ 
-        points: newPoints,
-        updated_at: new Date().toISOString()
-      })
-      .eq('email', userEmail);
-
-    if (updateError) {
-      console.error('Failed to update user points:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update user points' },
-        { status: 500 }
-      );
-    }
-
-    console.log(`✅ ${operation === 'add' ? 'Added' : 'Subtracted'} ${pointsChange} points ${operation === 'add' ? 'to' : 'from'} ${userEmail}. New total: ${newPoints}`);
 
     return NextResponse.json({
       success: true,
@@ -146,9 +168,9 @@ export async function POST(request: NextRequest) {
       previousPoints: currentPoints,
       change: pointsChange,
       operation,
-      reason
+      reason,
+      source: usedDemo ? 'demo' : 'supabase',
     });
-
   } catch (error) {
     console.error('Error in POST /api/users/points:', error);
     return NextResponse.json(

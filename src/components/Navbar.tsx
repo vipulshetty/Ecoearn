@@ -32,26 +32,24 @@ export default function Navbar() {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled || !isHomePage
           ? 'bg-white/95 backdrop-blur-md shadow-lg'
-          : 'bg-transparent'
+          : 'bg-slate-900/80 backdrop-blur-md'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`flex justify-between items-center ${
-          isHomePage ? 'h-20' : 'h-16'
-        }`}>
+        <div className="flex justify-between items-center h-20">
           <div className="flex items-center space-x-3">
             <Link href="/" className="flex items-center space-x-3 group">
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.8 }}
-                className={`${isHomePage ? 'w-10 h-10' : 'w-8 h-8'} rounded-xl flex items-center justify-center ${
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   isScrolled || !isHomePage
                     ? 'bg-gradient-to-br from-primary-500 to-primary-600'
                     : 'bg-white'
                 } shadow-lg transform transition-all group-hover:shadow-2xl`}
               >
                 <svg
-                  className={`${isHomePage ? 'w-6 h-6' : 'w-5 h-5'} ${
+                  className={`w-6 h-6 ${
                     isScrolled || !isHomePage ? 'text-white' : 'text-primary-600'
                   }`}
                   viewBox="0 0 24 24"
@@ -67,7 +65,7 @@ export default function Navbar() {
                 </svg>
               </motion.div>
               <span
-                className={`${isHomePage ? 'text-2xl' : 'text-xl'} font-bold transition-colors ${
+                className={`text-2xl font-bold transition-colors ${
                   isScrolled || !isHomePage ? 'text-primary-600' : 'text-white'
                 } group-hover:text-primary-500`}
               >
@@ -76,12 +74,12 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <div className={`hidden md:flex items-center ${isHomePage ? 'space-x-8' : 'space-x-6'}`}>
+          <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className={`relative font-medium transition-colors group ${isHomePage ? 'text-base' : 'text-sm'} ${
+                className={`relative font-medium transition-colors group text-base ${
                   isScrolled || !isHomePage
                     ? 'text-gray-600 hover:text-primary-600'
                     : 'text-white/90 hover:text-white'

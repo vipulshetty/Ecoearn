@@ -100,7 +100,7 @@ export default function Community() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary-600 via-green-600 to-blue-600 text-white pt-24 pb-32 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-primary-600 via-green-600 to-blue-600 text-white py-20 pb-32 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
         <motion.div
           initial={{ opacity: 0 }}
