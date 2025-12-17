@@ -8,18 +8,9 @@ namespace: ecoearn-dev
 
 namePrefix: dev-
 
-replicas:
-- name: ecoearn-app
-  count: 1
-
 images:
 - name: ecoearn
   newTag: dev-latest
 
-patches:
-- path: deployment-patch.yaml
-
-labels:
-- pairs:
-    environment: development
-  includeSelectors: false
+patchesStrategicMerge:
+- deployment-patch.yaml

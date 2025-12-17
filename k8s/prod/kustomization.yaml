@@ -6,18 +6,12 @@ resources:
 
 namespace: ecoearn
 
-replicas:
-- name: ecoearn-app
-  count: 3
-
 images:
 - name: ecoearn
   newTag: v1.0.0
 
-patches:
-- path: deployment-patch.yaml
-
-labels:
+patchesStrategicMerge:
+- deployment-patch.yaml
 - pairs:
     environment: production
   includeSelectors: false
