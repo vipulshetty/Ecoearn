@@ -12,6 +12,3 @@ images:
 
 patchesStrategicMerge:
 - deployment-patch.yaml
-- pairs:
-    environment: production
-  includeSelectors: false
