@@ -3,13 +3,19 @@
 FROM node:18-alpine AS deps
 WORKDIR /app
 
+# Install build dependencies for native modules (canvas, etc.)
+RUN apk add --no-cache python3 make g++ cairo-dev pango-dev libjpeg-turbo-dev giflib-dev
+
 # Install dependencies based on the preferred package manager
 COPY package*.json ./
-RUN npm install --production=false
+RUN npm install --legacy-peer-deps
 
 # Stage 2: Builder
 FROM node:18-alpine AS builder
 WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ cairo-dev pango-dev libjpeg-turbo-dev giflib-dev
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -17,6 +23,8 @@ COPY . .
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-key
 RUN npm run build
 
 # Stage 3: Runner
