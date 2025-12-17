@@ -19,5 +19,7 @@ images:
 patches:
 - path: deployment-patch.yaml
 
-commonLabels:
-  environment: development
+labels:
+- pairs:
+    environment: development
+  includeSelectors: false
